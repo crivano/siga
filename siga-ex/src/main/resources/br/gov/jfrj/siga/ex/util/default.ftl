@@ -5282,7 +5282,7 @@ ${texto}
 	[/#if]
 [/#compress][/#macro]
 
-[#macro field var index=(_index!'') title=var+index kind="" columns=80 lines=3 maxchars="" refresh=false required=false value="" default="" options="" searchClosed=false atts={} altered="" id="" col="" hint="" document=true sensitivity=""]
+[#macro field var index=(_index!'') title=var+index kind="" columns=80 lines=3 maxchars="" refresh=false required=false value="" default="" options="" searchClosed=false atts={} altered="" id="" col="" hint="" document=true sensitivity="" model=""]
 	[#if col?is_number]
 		[#local colr=('col-' + col) /]
 	[#elseif col?is_string]
@@ -5292,7 +5292,7 @@ ${texto}
 			[#local colr='col-12'/]
 		[/#if]
 	[/#if]
-	[@field_impl var=var+index title=title kind=kind columns=columns lines=lines maxchars=maxchars refresh=refresh required=required value=value default=default options=options searchClosed=searchClosed atts=atts id=id col=colr hint=hint /]
+	[@field_impl var=var+index title=title kind=kind columns=columns lines=lines maxchars=maxchars refresh=refresh required=required value=value default=default options=options searchClosed=searchClosed atts=atts id=id col=colr hint=hint model=model /]
 [/#macro]
 
 [#--
@@ -5396,7 +5396,7 @@ Exemplos de utilização:
 [@field kind="radio" var="radNumeral" title="Terceiro" value="Terceiro" refresh="rad" /]
 [@group depend="rad"]${radNumeral!}[/@group]
 --]
-[#macro field_impl var title=var kind="" maxchars="" refresh=false required=false columns=80 lines=3  value="" default="" options="" searchClosed=false atts={} id="" col="" hint=""]
+[#macro field_impl var title=var kind="" maxchars="" refresh=false required=false columns=80 lines=3  value="" default="" options="" searchClosed=false atts={} id="" col="" hint="" model=""]
     [#if gerar_formulario!false]
     	[#return]
     [/#if]
@@ -5954,7 +5954,9 @@ Exemplos de utilização:
 				[@field_selectable tipo="funcao" titulo=title var=var refresh_js=refresh_js paramList=paramList obrigatorio=required col=col hint=hint /]
 			[#elseif kind == "documento"]
 			    [@field_selectable tipo="expediente" modulo="sigaex" titulo=title var=var refresh_js=refresh_js paramList=paramList obrigatorio=required col=col hint=hint /]
-			[/#if]
+			[#elseif kind == "file"]
+        		[@field_file var=var title=title model=model refresh=refresh required=required col=col hint=hint /]
+    		[/#if]
 		        [#if required]            		    
 			   		<div class="invalid-feedback invalid-feedback-${var}${suffix!}">Preenchimento obrigatório</div>
 				[/#if]    
@@ -5965,7 +5967,123 @@ Exemplos de utilização:
 		[/#if]
 [/#macro]
 
-[#macro field_selectable titulo var tipo refresh_js="" default="" obrigatorio=false paramList="" modulo="" col="" hint=""]
+[#macro field_file var title model="" refresh=false required=false col="col-12" hint=""]
+    [#local v = .vars[var]!""]
+    [#local idAjax = "" /]
+    [#if refresh?is_string][#local idAjax = refresh /][/#if]
+    <input type="hidden" id="${var}" name="${var}" value="${v}"/>
+    
+    [#-- Área de Upload --]
+    <div id="upload_zone_${var}" style="display: [#if v == ""]block[#else]none[/#if];">
+        <div class="custom-file">
+            <input type="file" id="input_file_${var}" class="custom-file-input" onchange="uploadFile_${var}(this)" />
+            <label class="custom-file-label" for="input_file_${var}">Escolha o arquivo...</label>
+        </div>
+        
+        <div id="progress_wrapper_${var}" style="display:none; margin-top: 5px;">
+            <div class="progress" style="height: 5px;">
+                <div id="progress_bar_${var}" class="progress-bar bg-info" role="progressbar" style="width: 0%"></div>
+            </div>
+            <small class="text-muted">Enviando documento...</small>
+        </div>
+    </div>
+
+    [#-- Área de Resultado --]
+    <div id="result_zone_${var}" style="display: [#if v != ""]flex[#else]none[/#if]; align-items: center;">
+        <div class="input-group">
+            <input type="text" class="form-control" value="Documento vinculado: ${v}" readonly 
+                   style="background-color: #e9ecef; font-weight: bold; color: #28a745;" id="id_display_${var}" />
+            <div class="input-group-append">
+                <button class="btn btn-outline-danger" type="button" onclick="clearFile_${var}()">
+                    <i class="fa fa-trash"></i> Limpar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+    function uploadFile_${var}(inputEl) {
+        if (!inputEl.files || inputEl.files.length === 0) return;
+
+        var file = inputEl.files[0];
+        var formData = new FormData();
+        
+        // Parâmetro corrigido para 'model' conforme solicitado
+        formData.append("modelo", "${model}"); 
+        formData.append("arquivo", file);
+        formData.append("entrevista", ""); 
+        formData.append("eletronico", "true");
+
+        $("#progress_wrapper_${var}").show();
+        $(inputEl).attr("disabled", true);
+        
+        $.ajax({
+            url: '/sigaex/api/v1/documentos',
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            xhr: function() {
+                var xhr = new window.XMLHttpRequest();
+                xhr.upload.addEventListener("progress", function(evt) {
+                    if (evt.lengthComputable) {
+                        var percent = Math.round((evt.loaded / evt.total) * 100);
+                        $("#progress_bar_${var}").css("width", percent + "%");
+                    }
+                }, false);
+                return xhr;
+            },
+            success: function(data) {
+                if (data && data.sigladoc) {
+                    var sigla = data.sigladoc;
+                    document.getElementById("${var}").value = sigla;
+                    $("#id_display_${var}").val("Documento vinculado: " + sigla);
+                    
+                    $("#upload_zone_${var}").hide();
+                    $("#result_zone_${var}").css("display", "flex");
+
+                    [#if idAjax != ""]
+                        sbmt('${idAjax}');
+                    [#elseif refresh == true]
+                        sbmt('');
+                    [/#if]
+                }
+            },
+            error: function(xhr) {
+                alert("Erro: " + (xhr.responseJSON ? xhr.responseJSON.errormsg : "Falha na comunicação"));
+                $(inputEl).val("");
+            },
+            complete: function() {
+                $("#progress_wrapper_${var}").hide();
+                $("#progress_bar_${var}").css("width", "0%");
+                $(inputEl).attr("disabled", false);
+            }
+        });
+    }
+
+    function clearFile_${var}() {
+        // Limpeza imediata sem confirmação
+        document.getElementById("${var}").value = "";
+        
+        var fInput = document.getElementById("input_file_${var}");
+        if (fInput) {
+            fInput.value = "";
+            $(fInput).next('.custom-file-label').html("Escolha o arquivo...");
+        }
+        
+        $("#result_zone_${var}").hide();
+        $("#upload_zone_${var}").show();
+        
+        [#if idAjax != ""]
+            sbmt('${idAjax}');
+        [#elseif refresh == true]
+            sbmt('');
+        [/#if]
+    }
+    </script>
+[/#macro]
+
+[#macro field_selectable titulo var tipo refresh_js="" default="" obrigatorio=false paramList="" modulo="" col="" hint="" model=""]
     [#assign tipoSel = "_" + tipo /]
 
     [#assign varName = var + tipoSel + "Sel.id" /]    
