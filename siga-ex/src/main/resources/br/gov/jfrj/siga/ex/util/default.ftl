@@ -5967,11 +5967,18 @@ Exemplos de utilização:
 		[/#if]
 [/#macro]
 
+[#assign contadorDeDocumentosASeremJuntados = 0 /]
+
 [#macro field_file var title model="" refresh=false required=false col="col-12" hint=""]
     [#local v = .vars[var]!""]
     [#local idAjax = "" /]
     [#if refresh?is_string][#local idAjax = refresh /][/#if]
     <input type="hidden" id="${var}" name="${var}" value="${v}"/>
+    
+    [#-- Cria uma nova variável indicando o número desse documento na lista de documentos a serem juntado --]
+	[#assign contadorDeDocumentosASeremJuntados = contadorDeDocumentosASeremJuntados + 1 /]
+    <input type="hidden" name="vars" value="${var}_document_submission_index" />
+    <input type="hidden" name="${var}_document_submission_index" value="${contadorDeDocumentosASeremJuntados}"/>
     
     [#-- Área de Upload --]
     <div id="upload_zone_${var}" style="display: [#if v == ""]block[#else]none[/#if];">
