@@ -10,12 +10,13 @@ import javax.persistence.EntityTransaction;
 import br.gov.jfrj.siga.base.UsuarioDeSistemaEnum;
 
 public class ContextoPersistencia {
-
+	
     private final static ThreadLocal<EntityManager> emByThread = new ThreadLocal<>();
 	private final static ThreadLocal<String> userPrincipalByThread = new ThreadLocal<>();
 	private final static ThreadLocal<Date> dataEHoraDoServidor = new ThreadLocal<>();
     private final static ThreadLocal<UsuarioDeSistemaEnum> usuarioDeSistema = new ThreadLocal<>();
     private final static ThreadLocal<List<AfterCommit>> afterCommit = new ThreadLocal<>();
+	private final static ThreadLocal<DadosParaCriacaoDeUsuario> dadosParaCriacaoDeUsuarioByThread = new ThreadLocal<>();
 	
 	public interface AfterCommit {
 	    void run();
@@ -39,6 +40,11 @@ public class ContextoPersistencia {
         afterCommit.remove();
 	}
 	
+	
+    public static boolean isTransactional() {
+    	EntityTransaction transaction = em().getTransaction();
+        return transaction.isActive();
+    }
 	
    public static boolean upgradeToTransactional() {
         EntityTransaction transaction = em().getTransaction();
@@ -116,6 +122,15 @@ public class ContextoPersistencia {
 
 	static public void removeUserPrincipal() {
 		userPrincipalByThread.remove();
+		dadosParaCriacaoDeUsuarioByThread.remove();
+	}
+	
+	static public void setDadosParaCriacaoDeUsuario(DadosParaCriacaoDeUsuario creationData) {
+		dadosParaCriacaoDeUsuarioByThread.set(creationData);
+	}
+
+	static public DadosParaCriacaoDeUsuario getDadosParaCriacaoDeUsuario() {
+		return dadosParaCriacaoDeUsuarioByThread.get();
 	}
 	
 	static public void setDt(Date dt) {
