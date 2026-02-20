@@ -47,6 +47,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.SortedSet;
 import java.util.TreeSet;
 
 import javax.inject.Inject;
@@ -1651,7 +1652,7 @@ public class ExDocumentoController extends ExController {
 
 		result.redirectTo("exibir?sigla=" + exDocumentoDto.getDoc().getCodigo());
 	}
-
+	
 	@Transacional
 	@RequestParamsPermissiveCheck
 	@Post("/app/expediente/doc/gravar")
@@ -1910,7 +1911,7 @@ public class ExDocumentoController extends ExController {
 				// }
 			}
 
-			exBL.gravar(getCadastrante(), getTitular(), getLotaTitular(),
+			ExDocumento doc = exBL.gravar(getCadastrante(), getTitular(), getLotaTitular(),
 					exDocumentoDTO.getDoc());
 			
 			/*
@@ -1967,7 +1968,6 @@ public class ExDocumentoController extends ExController {
 						"Erro ao tentar incluir os cosignatários deste documento",
 						0, e);
 			}
-
 		} catch (final AplicacaoException e) {
 			throw e;
 		} catch (final Exception e) {
@@ -1988,7 +1988,7 @@ public class ExDocumentoController extends ExController {
 			result.redirectTo(url);
 		}
 	}
-
+	
 	@Transacional
 	@RequestParamsPermissiveCheck
 	@Post("app/expediente/doc/gravarpreench")

@@ -76,6 +76,7 @@ import org.json.JSONObject;
 import org.jsoup.Jsoup;
 
 import com.auth0.jwt.JWTSigner;
+import com.crivano.jlogic.Expression;
 import com.crivano.swaggerservlet.ISwaggerRequest;
 import com.crivano.swaggerservlet.ISwaggerResponse;
 import com.crivano.swaggerservlet.SwaggerAsyncResponse;
@@ -124,8 +125,6 @@ import br.gov.jfrj.siga.cp.CpGrupoDeEmail;
 import br.gov.jfrj.siga.cp.CpIdentidade;
 import br.gov.jfrj.siga.cp.CpToken;
 import br.gov.jfrj.siga.cp.TipoConteudo;
-import br.gov.jfrj.siga.cp.arquivo.Armazenamento;
-import br.gov.jfrj.siga.cp.arquivo.ArmazenamentoFabrica;
 import br.gov.jfrj.siga.cp.auth.ValidadorDeSenhaFabrica;
 import br.gov.jfrj.siga.cp.bl.Cp;
 import br.gov.jfrj.siga.cp.bl.CpBL;
@@ -251,10 +250,10 @@ import br.gov.jfrj.siga.integracao.ws.pubnet.service.PubnetEnvioService;
 import br.gov.jfrj.siga.integracao.ws.siafem.ServicoSiafemWs;
 import br.gov.jfrj.siga.integracao.ws.siafem.SiafDoc;
 import br.gov.jfrj.siga.model.ContextoPersistencia;
+import br.gov.jfrj.siga.model.ContextoPersistencia.AfterCommit;
 import br.gov.jfrj.siga.model.Objeto;
 import br.gov.jfrj.siga.model.ObjetoBase;
 import br.gov.jfrj.siga.model.Selecionavel;
-import br.gov.jfrj.siga.model.ContextoPersistencia.AfterCommit;
 import br.gov.jfrj.siga.model.enm.CpExtensoesDeArquivoEnum;
 import br.gov.jfrj.siga.parser.PessoaLotacaoParser;
 import br.gov.jfrj.siga.parser.SiglaParser;
@@ -3446,19 +3445,6 @@ public class ExBL extends CpBL {
 			}
 
 			Set<ExVia> setVias = doc.getSetVias();
-
-			processar(doc, false, false);
-			// doc.armazenar();
-
-			doc.setNumPaginas(doc.getContarNumeroDePaginas());
-			
-			dao().gravar(doc);
-			
-			if (doc.getSubscritor() != null) {
-				if ((doc.getCadastrante() == null || !doc.getCadastrante().equivale(doc.getSubscritor())) && usuarioExternoTemQueAssinar(doc, doc.getSubscritor())) {
-					enviarEmailParaUsuarioExternoAssinarDocumento(doc, doc.getSubscritor());
-				}
-			}	
 			
 			if (doc.getExFormaDocumento().getExTipoFormaDoc().isExpediente()) {
 				for (final ExVia via : setVias) {
@@ -3474,6 +3460,21 @@ public class ExBL extends CpBL {
 				criarVolume(cadastrante, lotaCadastrante, titular, lotaTitular, doc);
 			}
 
+			tratarDocumentosSubmetidosNaEntrevista(cadastrante, lotaCadastrante, titular, lotaTitular, doc);
+
+			processar(doc, false, false);
+			// doc.armazenar();
+
+			doc.setNumPaginas(doc.getContarNumeroDePaginas());
+			
+			dao().gravar(doc);
+			
+			if (doc.getSubscritor() != null) {
+				if ((doc.getCadastrante() == null || !doc.getCadastrante().equivale(doc.getSubscritor())) && usuarioExternoTemQueAssinar(doc, doc.getSubscritor())) {
+					enviarEmailParaUsuarioExternoAssinarDocumento(doc, doc.getSubscritor());
+				}
+			}	
+			
 			concluirAlteracaoDocComRecalculoAcesso(doc);
 			if (getExConsTempDocCompleto().podeVisualizarTempDocComplCossigsSubscritor(cadastrante, lotaCadastrante) 
 							&& doc.isFinalizado() && getExConsTempDocCompleto().possuiInclusaoCossigsSubscritor(doc)) {
@@ -3500,6 +3501,76 @@ public class ExBL extends CpBL {
 			throw new RuntimeException("Erro ao finalizar o documento: " + e.getMessage(), e);
 		}
 	}
+	
+	private static class SubmittedDocumentInfo implements Comparable<SubmittedDocumentInfo> { 
+		String key; 
+		int index; 
+		String sigla;
+		String siglaAlterada;
+		
+		public SubmittedDocumentInfo(String key, String index, String sigla) {
+			this.key = key;
+			this.index = Integer.parseInt(index);
+			this.sigla = sigla;
+		}
+
+		@Override
+		public int compareTo(SubmittedDocumentInfo o) {
+			return index - o.index;
+		}
+
+	};
+
+	// Juntar documentos que foram adicionados diretamente pela entrevista
+	//
+	private void tratarDocumentosSubmetidosNaEntrevista(final DpPessoa cadastrante, final DpLotacao lotaCadastrante, 
+			DpPessoa titular, DpLotacao lotaTitular, ExDocumento doc) throws Exception {
+		// Constroi o set com informações sobre os documentos submetidos
+		final String SUBMISSION_ENDING = "_document_submission_index";
+		SortedSet<SubmittedDocumentInfo> submittedSet = new TreeSet<>();
+		Map<String, String> form = doc.getForm();
+		for (String key : form.keySet()) {
+			if (!key.endsWith(SUBMISSION_ENDING))
+				continue;
+			String var = key.substring(0, key.length() - SUBMISSION_ENDING.length());
+			submittedSet.add(new SubmittedDocumentInfo(var, form.get(key), form.get(var)));
+		}
+		if (submittedSet.size() == 0)
+			return;
+
+		// Finaliza os documentos submetidos para que possam ser juntados
+		ExMobil primeiroMob = doc.getPrimeiroMobil();
+		boolean isFormAltered = false;
+//		System.out.println("Documentos submetidos na entrevista:");
+		for (SubmittedDocumentInfo submitted : submittedSet) {
+//			System.out.println(submitted.key + " - " + submitted.index);
+			ExMobil mob = dao().consultarPorSigla(submitted.sigla);
+			final ExDocumento d = mob.getExDocumento();
+			if (primeiroMob != null) 
+				d.setExMobilPai(primeiroMob);
+			if (!d.isFinalizado()) {
+				finalizar(cadastrante, lotaTitular, titular, lotaTitular, d);
+				mob = mob.getExDocumento().getPrimeiroMobil();
+				submitted.siglaAlterada = mob.getSigla();
+				form.put(submitted.key, mob.getSigla());
+				isFormAltered = true;
+			}
+			
+			if (primeiroMob != null) 
+				juntarDocumento(cadastrante, titular, lotaCadastrante, null, mob,
+						d.getExMobilPai(), null, null, titular, "1");
+		}
+		
+		// Altera o form para que fiquem registrados as siglas corretas dos documentos submetidos
+		//
+		if (isFormAltered) {
+			doc.setConteudoBlobForm(urlEncodedFormFromMap(form));
+		}
+		
+		
+	}
+
+
 	
 	public void verificaDocumento(final DpPessoa titular, final DpLotacao lotaTitular, final ExDocumento doc) {
 		if ((doc.getSubscritor() == null)
@@ -6425,14 +6496,17 @@ public class ExBL extends CpBL {
 		return s;
 	}
 
-	private void juntarAoDocumentoPai(final DpPessoa cadastrante, final DpLotacao lotaCadastrante,
+	public void juntarAoDocumentoPai(final DpPessoa cadastrante, final DpLotacao lotaCadastrante,
 			final ExDocumento doc, final Date dtMov, final DpPessoa subscritor, final DpPessoa titular,
 			final ExMovimentacao mov) throws Exception, AplicacaoException {
-
+		
 		// for (int numVia = 1; numVia <= doc.getNumUltimaViaNaoCancelada();
 		// numVia++)
 		for (final ExMobil mob : doc.getExMobilSet()) {
 
+//			Expression exp = getComp().exp(ExPodeJuntar.class, titular, lotaCadastrante, mob);
+//			System.out.println(exp.explain(exp.eval()));
+			
 			if (getComp().pode(ExPodeJuntar.class, titular, lotaCadastrante, mob) && getComp()
 					.pode(ExPodeSerJuntado.class, titular, lotaCadastrante, mob.doc(), doc.getExMobilPai())) {
 				juntarDocumento(cadastrante, titular, lotaCadastrante, null, mob,

@@ -1253,7 +1253,7 @@ function identificarOperacoes() {
 			var oChkAut = document.getElementsByName("ad_aut_"
 					+ operacao.codigo)[0];
 			if (oChkAut != null) {
-				operacao.autenticar = oChkAut.checked;
+				operacao.autenticar = oChkAut.checked || oChkAut.value == "true";
 				if (operacao.autenticar)
 					operacao.enabled = true;
 			}
