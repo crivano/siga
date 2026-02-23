@@ -76,7 +76,6 @@ import org.json.JSONObject;
 import org.jsoup.Jsoup;
 
 import com.auth0.jwt.JWTSigner;
-import com.crivano.jlogic.Expression;
 import com.crivano.swaggerservlet.ISwaggerRequest;
 import com.crivano.swaggerservlet.ISwaggerResponse;
 import com.crivano.swaggerservlet.SwaggerAsyncResponse;
@@ -2035,8 +2034,8 @@ public class ExBL extends CpBL {
 	}
 
 	public String assinarDocumentoComSenha(final DpPessoa cadastrante, final DpLotacao lotaCadastrante,
-			final ExDocumento doc, final Date dtMov, final String matriculaSubscritor, final String senhaSubscritor, final boolean senhaIsPIN,
-			final boolean validarSenha, final DpPessoa titular, final boolean autenticando, Boolean juntar,
+			final ExDocumento doc, final Date dtMov, String matriculaSubscritor, final String senhaSubscritor, final boolean senhaIsPIN,
+			boolean validarSenha, final DpPessoa titular, final boolean autenticando, Boolean juntar,
 			Boolean tramitar, final Boolean exibirNoProtocolo) throws Exception {
 
 		DpPessoa subscritor = null;
@@ -2049,6 +2048,11 @@ public class ExBL extends CpBL {
 		
 		if (matriculaSubscritor == null || matriculaSubscritor.isEmpty())
 			throw new AplicacaoException("Matrícula do Subscritor não foi informada.");
+		
+		if (isUsuarioExterno(cadastrante, lotaCadastrante)) {
+			matriculaSubscritor = cadastrante.getSigla();
+			validarSenha = false;
+		}
 
 		final CpIdentidade id = dao().consultaIdentidadeCadastrante(matriculaSubscritor, true);
 		// se o usuário não existir
@@ -2750,7 +2754,7 @@ public class ExBL extends CpBL {
 			throws Exception {
 		for (ExMobil mob : doc.getExMobilSet()) {
 			Set<ExMovimentacao> set = mob.getExMovimentacaoReferenciaSet();
-			if (set.size() > 0) {
+			if (set != null && set.size() > 0) {
 				final Object[] aMovimentacao = set.toArray();
 				for (int i = 0; i < set.size(); i++) {
 					final ExMovimentacao movimentacao = (ExMovimentacao) aMovimentacao[i];
@@ -3523,7 +3527,7 @@ public class ExBL extends CpBL {
 
 	// Juntar documentos que foram adicionados diretamente pela entrevista
 	//
-	private void tratarDocumentosSubmetidosNaEntrevista(final DpPessoa cadastrante, final DpLotacao lotaCadastrante, 
+	public void tratarDocumentosSubmetidosNaEntrevista(final DpPessoa cadastrante, final DpLotacao lotaCadastrante, 
 			DpPessoa titular, DpLotacao lotaTitular, ExDocumento doc) throws Exception {
 		// Constroi o set com informações sobre os documentos submetidos
 		final String SUBMISSION_ENDING = "_document_submission_index";
@@ -3541,7 +3545,28 @@ public class ExBL extends CpBL {
 		// Finaliza os documentos submetidos para que possam ser juntados
 		ExMobil primeiroMob = doc.getPrimeiroMobil();
 		boolean isFormAltered = false;
+		
+		// Localiza as movimentações de juntada já existentes
+		SortedSet<ExMovimentacao> movsRef = primeiroMob.getExMovimentacaoReferenciaSet();
+		List<ExMovimentacao> juntadas = new ArrayList<>();
+		if (movsRef != null) {
+			for (ExMovimentacao m : movsRef) {
+				if (m.getExTipoMovimentacao() == ExTipoDeMovimentacao.JUNTADA)
+					juntadas.add(m);
+				if (m.getExTipoMovimentacao() == ExTipoDeMovimentacao.CANCELAMENTO_JUNTADA) {
+					for (int i = juntadas.size() - 1; i >= 0; i--) {
+						ExMovimentacao mj = juntadas.get(i);
+						if (mj.mob() == m.mob()) {
+							juntadas.remove(i);
+							break;
+						}
+					}
+				}
+			}
+		}
+		
 //		System.out.println("Documentos submetidos na entrevista:");
+		int i = 0;
 		for (SubmittedDocumentInfo submitted : submittedSet) {
 //			System.out.println(submitted.key + " - " + submitted.index);
 			ExMobil mob = dao().consultarPorSigla(submitted.sigla);
@@ -3556,9 +3581,28 @@ public class ExBL extends CpBL {
 				isFormAltered = true;
 			}
 			
-			if (primeiroMob != null) 
+			if (primeiroMob == null)
+				continue;
+
+			// Verifica se já está juntado e na order correta
+			final ExMovimentacao juntada = juntadas.size() > i ? juntadas.get(i++) : null; 
+			if (juntada != null 
+					&& mob.isJuntado() 
+					&& mob.equals(juntada.getExMobil()) 
+					&& primeiroMob.equals(juntada.getExMobilRef()))
+				continue;
+			
+			// Se houve alteração nem alguma juntada, cancela todas as juntadas daqui para frente
+			for (int j = juntadas.size() - 1; j >= 0 && j >= i - 1; j--) {
+				cancelarJuntada(cadastrante, lotaCadastrante, juntadas.get(j).mob(), null, cadastrante, titular, "Juntada automática de documento submetido na entrevista cancelada por alteração no documento antes da assinatura.");
+			}
+			juntadas.clear();
+			
+			// Juntar o mobil correto
+			if (!mob.isJuntado()) {
 				juntarDocumento(cadastrante, titular, lotaCadastrante, null, mob,
 						d.getExMobilPai(), null, null, titular, "1");
+			}
 		}
 		
 		// Altera o form para que fiquem registrados as siglas corretas dos documentos submetidos

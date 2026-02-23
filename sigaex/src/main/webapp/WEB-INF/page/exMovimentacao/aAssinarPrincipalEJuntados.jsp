@@ -121,6 +121,7 @@
 							<input type="hidden" name="ad_url_base" value="" /> <input
 								type="hidden" name="ad_url_next"
 								value="/sigaex/app/expediente/doc/exibir?sigla=${sigla}" /> 
+							<input type="hidden" name="ad_usuario_externo" value="${usuarioExterno}" />
 
 							<c:forEach var="juntado" items="${juntados}">
 								<input type="hidden" name="ad_descr_${juntado.idDoc}" value="${juntado.sigla}" />
@@ -160,7 +161,7 @@
 
 						<tags:assinatura_botoes assinar="${assinando}"
 							voltar="${voltarAtivo}"
-							linkVoltar="${pageContext.request.contextPath}/app/expediente/doc/exibir?editar=${sigla}"
+							linkVoltar="${pageContext.request.contextPath}/app/expediente/doc/editar?sigla=${sigla}"
 							assinarComSenha="${podeAssinarComSenha and not obrigatorioUtilizarSegundoFatorPin}"
 							assinarComSenhaChecado="${podeAssinarComSenha and defaultAssinarComSenha and not defaultUtilizarSegundoFatorPin}" />
 

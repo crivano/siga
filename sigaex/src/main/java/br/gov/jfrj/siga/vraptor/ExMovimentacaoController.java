@@ -888,6 +888,7 @@ public class ExMovimentacaoController extends ExController {
 		BuscaDocumentoBuilder builder = BuscaDocumentoBuilder.novaInstancia()
 				.setSigla(sigla);
 		ExDocumento doc = buscarDocumento(builder);
+		Ex.getInstance().getBL().tratarDocumentosSubmetidosNaEntrevista(getCadastrante(), getLotaCadastrante(), getTitular(), getLotaTitular(), doc);
 		ExMobil mob = doc.getPrimeiroMobil();
 		List<ExDocumento> l = new ArrayList<>();
 		if (doc.isPendenteDeAssinatura())
@@ -898,6 +899,7 @@ public class ExMovimentacaoController extends ExController {
 				l.add(juntado);
 		}
 		result.include("juntados", l);
+		result.include("usuarioExterno", isUsuarioExterno());
 	}
 
 	

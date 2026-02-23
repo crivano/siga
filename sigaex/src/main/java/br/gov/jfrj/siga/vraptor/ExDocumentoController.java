@@ -1980,12 +1980,20 @@ public class ExDocumentoController extends ExController {
 							.getDtRegDocDDMMYY());
 			result.use(Results.http()).body(body);
 		} else {
-			final String url = MessageFormat.format(
+			if (isUsuarioExterno()) {
+				ExDocumento doc = exDocumentoDTO.getDoc();
+				if (!doc.isFinalizado())
+					Ex.getInstance().getBL().finalizar(getCadastrante(), getLotaCadastrante(), getTitular(), getLotaTitular(), doc);
+				final String url = MessageFormat.format("/app/expediente/mov/assinar-principal-e-juntados?sigla={0}",
+					doc.getSigla());
+				result.redirectTo(url);
+			} else {
+				final String url = MessageFormat.format(
 					"exibir?sigla={0}{1}",
 					exDocumentoDTO.getDoc().getSigla(),
-					exDocumentoDTO.getDesativ() == null ? "" : exDocumentoDTO
-							.getDesativ());
-			result.redirectTo(url);
+					exDocumentoDTO.getDesativ() == null ? "" : exDocumentoDTO.getDesativ());
+				result.redirectTo(url);
+			}
 		}
 	}
 	

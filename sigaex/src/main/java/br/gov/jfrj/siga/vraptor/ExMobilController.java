@@ -64,6 +64,7 @@ import br.gov.jfrj.siga.cp.bl.Cp;
 import br.gov.jfrj.siga.cp.model.CpOrgaoSelecao;
 import br.gov.jfrj.siga.cp.model.DpLotacaoSelecao;
 import br.gov.jfrj.siga.cp.model.DpPessoaSelecao;
+import br.gov.jfrj.siga.cp.model.enm.CpMarcadorEnum;
 import br.gov.jfrj.siga.cp.model.enm.CpTipoDeConfiguracao;
 import br.gov.jfrj.siga.dp.CpOrgaoUsuario;
 import br.gov.jfrj.siga.dp.DpPessoa;
@@ -1219,4 +1220,27 @@ public class ExMobilController extends
 		
 	}
 	
+	@Get("/app/expediente/doc/mesa-usuario-externo")
+	public void mesaUsuarioExterno(final int offset) {
+		Long pessoaId = null;
+		Long lotacaoId = null;
+		pessoaId = getTitular().getPessoaInicial().getId();
+		
+		final ExMobilDaoFiltro flt = createDaoFiltro();
+		flt.setUltMovIdEstadoDoc(CpMarcadorEnum.COMO_INTERESSADO.getId());
+		Integer tamanho = dao().consultarQuantidadePorFiltroOtimizado(flt, getTitular(), getLotaTitular());
+
+		if (Objects.nonNull(tamanho)) {
+			final List<ExMobil> itens = dao().consultarPorFiltroOtimizado(flt, offset, getItemPagina(), getTitular(), getLotaTitular());
+			getP().setOffset(offset);
+			setItemPagina(MAX_ITENS_PAGINA_CINQUENTA);
+			setItens(itens);
+			setTamanho(tamanho);
+
+			result.include("itens", this.getItens());
+			result.include("itemPagina", this.getItemPagina());
+			result.include("tamanho", this.getTamanho());
+			result.include("currentPageNumber", calculaPaginaAtual(offset));
+		}
+	}
 }
