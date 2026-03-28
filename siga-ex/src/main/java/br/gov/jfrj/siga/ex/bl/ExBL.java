@@ -3524,6 +3524,27 @@ public class ExBL extends CpBL {
 		}
 
 	};
+	
+	private List<ExMovimentacao> juntadasAtivas(ExMobil primeiroMob) {
+		SortedSet<ExMovimentacao> movsRef = primeiroMob.getExMovimentacaoReferenciaSet();
+		List<ExMovimentacao> juntadas = new ArrayList<>();
+		if (movsRef != null) {
+			for (ExMovimentacao m : movsRef) {
+				if (m.getExTipoMovimentacao() == ExTipoDeMovimentacao.JUNTADA)
+					juntadas.add(m);
+				if (m.getExTipoMovimentacao() == ExTipoDeMovimentacao.CANCELAMENTO_JUNTADA) {
+					for (int i = juntadas.size() - 1; i >= 0; i--) {
+						ExMovimentacao mj = juntadas.get(i);
+						if (mj.mob() == m.mob()) {
+							juntadas.remove(i);
+							break;
+						}
+					}
+				}
+			}
+		}
+		return juntadas;
+	}
 
 	// Juntar documentos que foram adicionados diretamente pela entrevista
 	//
@@ -3543,36 +3564,23 @@ public class ExBL extends CpBL {
 			return;
 
 		// Finaliza os documentos submetidos para que possam ser juntados
-		ExMobil primeiroMob = doc.getPrimeiroMobil();
+		ExMobil primeiroMob = doc.getMobilDefaultParaReceberJuntada();
 		boolean isFormAltered = false;
 		
 		// Localiza as movimentações de juntada já existentes
-		SortedSet<ExMovimentacao> movsRef = primeiroMob.getExMovimentacaoReferenciaSet();
-		List<ExMovimentacao> juntadas = new ArrayList<>();
-		if (movsRef != null) {
-			for (ExMovimentacao m : movsRef) {
-				if (m.getExTipoMovimentacao() == ExTipoDeMovimentacao.JUNTADA)
-					juntadas.add(m);
-				if (m.getExTipoMovimentacao() == ExTipoDeMovimentacao.CANCELAMENTO_JUNTADA) {
-					for (int i = juntadas.size() - 1; i >= 0; i--) {
-						ExMovimentacao mj = juntadas.get(i);
-						if (mj.mob() == m.mob()) {
-							juntadas.remove(i);
-							break;
-						}
-					}
-				}
-			}
-		}
+		List<ExMovimentacao> juntadas = juntadasAtivas(primeiroMob);
 		
 //		System.out.println("Documentos submetidos na entrevista:");
 		int i = 0;
+		Set<ExDocumento> filhosJuntados = new TreeSet<>();
 		for (SubmittedDocumentInfo submitted : submittedSet) {
 //			System.out.println(submitted.key + " - " + submitted.index);
 			ExMobil mob = dao().consultarPorSigla(submitted.sigla);
 			final ExDocumento d = mob.getExDocumento();
-			if (primeiroMob != null) 
+			if (primeiroMob != null) {
 				d.setExMobilPai(primeiroMob);
+				gravaDescrDocumento(titular, lotaTitular, d);
+			}
 			if (!d.isFinalizado()) {
 				finalizar(cadastrante, lotaTitular, titular, lotaTitular, d);
 				mob = mob.getExDocumento().getPrimeiroMobil();
@@ -3584,13 +3592,16 @@ public class ExBL extends CpBL {
 			if (primeiroMob == null)
 				continue;
 
+			filhosJuntados.add(mob.doc());
+
 			// Verifica se já está juntado e na order correta
 			final ExMovimentacao juntada = juntadas.size() > i ? juntadas.get(i++) : null; 
 			if (juntada != null 
 					&& mob.isJuntado() 
 					&& mob.equals(juntada.getExMobil()) 
-					&& primeiroMob.equals(juntada.getExMobilRef()))
+					&& primeiroMob.equals(juntada.getExMobilRef())) {
 				continue;
+			}
 			
 			// Se houve alteração nem alguma juntada, cancela todas as juntadas daqui para frente
 			for (int j = juntadas.size() - 1; j >= 0 && j >= i - 1; j--) {
@@ -3601,7 +3612,7 @@ public class ExBL extends CpBL {
 			// Juntar o mobil correto
 			if (!mob.isJuntado()) {
 				juntarDocumento(cadastrante, titular, lotaCadastrante, null, mob,
-						d.getExMobilPai(), null, null, titular, "1");
+						primeiroMob, null, null, titular, "1");
 			}
 		}
 		
@@ -3609,11 +3620,27 @@ public class ExBL extends CpBL {
 		//
 		if (isFormAltered) {
 			doc.setConteudoBlobForm(urlEncodedFormFromMap(form));
+			processar(doc, false, false);
+			doc.setNumPaginas(doc.getContarNumeroDePaginas());
+			dao().gravar(doc);
 		}
 		
-		
+		// Cancelar os documentos filhos de doc que não estejam na lista de documentos juntados.
+		// Precisamos disso para que não seja feita a juntada automática no momento da assinatura.
+		// Precisamos que os documentos sejam filhos para que haja uma relação e seja possível
+		// aproveitar campos da entrevista do pai na descrição do filho.
+		//
+		Set<ExDocumento> filhos = primeiroMob.getExDocumentoFilhoSet();
+		for (ExDocumento d : filhos) {
+			if (!filhosJuntados.contains(d)) {
+				if (new ExPodeExcluir(d.getMobilGeral(), titular, lotaTitular).eval()) {
+					excluirDocumento(doc, titular, lotaTitular, true);
+				} else {
+					cancelarDocumento(cadastrante, lotaCadastrante, d, "Documento submetido na entrevista, por usuário externo, por engano.");
+				}
+			}
+		}
 	}
-
 
 	
 	public void verificaDocumento(final DpPessoa titular, final DpLotacao lotaTitular, final ExDocumento doc) {

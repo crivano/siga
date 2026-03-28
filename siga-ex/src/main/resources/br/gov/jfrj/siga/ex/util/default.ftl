@@ -5983,7 +5983,7 @@ Exemplos de utilização:
     [#-- Área de Upload --]
     <div id="upload_zone_${var}" style="display: [#if v == ""]block[#else]none[/#if];">
         <div class="custom-file">
-            <input type="file" id="input_file_${var}" class="custom-file-input" onchange="uploadFile_${var}(this)" />
+            <input type="file" id="input_file_${var}" class="custom-file-input" onchange="uploadFile_${var}(this)" accept="application/pdf" />
             <label class="custom-file-label" for="input_file_${var}">Escolha o arquivo...</label>
         </div>
         

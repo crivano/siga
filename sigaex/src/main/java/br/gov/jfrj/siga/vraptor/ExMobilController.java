@@ -75,6 +75,7 @@ import br.gov.jfrj.siga.ex.ExMarca;
 import br.gov.jfrj.siga.ex.ExMobil;
 import br.gov.jfrj.siga.ex.ExModelo;
 import br.gov.jfrj.siga.ex.ExNivelAcesso;
+import br.gov.jfrj.siga.ex.ExPapel;
 import br.gov.jfrj.siga.ex.ExTipoDocumento;
 import br.gov.jfrj.siga.ex.ExTipoFormaDoc;
 import br.gov.jfrj.siga.ex.bl.Ex;
@@ -83,6 +84,7 @@ import br.gov.jfrj.siga.ex.logic.ExPodeAcessarDocumento;
 import br.gov.jfrj.siga.ex.logic.ExPodePorConfiguracao;
 import br.gov.jfrj.siga.ex.logic.ExPodeReceber;
 import br.gov.jfrj.siga.hibernate.ExDao;
+import br.gov.jfrj.siga.model.ContextoPersistencia;
 import br.gov.jfrj.siga.model.GenericoSelecao; 
 import br.gov.jfrj.siga.model.Selecionavel;
 import br.gov.jfrj.siga.persistencia.ExMobilDaoFiltro;
@@ -1221,7 +1223,41 @@ public class ExMobilController extends
 	}
 	
 	@Get("/app/expediente/doc/mesa-usuario-externo")
-	public void mesaUsuarioExterno(final int offset) {
+	public void mesaUsuarioExterno(final String sigla, final int offset) throws InterruptedException {
+		
+		if (sigla != null && !sigla.isEmpty()) {
+			final ExMobilDaoFiltro filter = new ExMobilDaoFiltro();
+			filter.setSigla(sigla);
+			ExMobil mob = (ExMobil) dao().consultarPorSigla(filter);
+			ExDocumento doc = mob.doc();
+			ExMobil geral = doc.getMobilGeral();
+			boolean interessado = false;
+			for (ExMarca marca : geral.getExMarcaSetAtivas()) {
+				if (marca.getCpMarcador().getIdMarcador().equals(CpMarcadorEnum.COMO_INTERESSADO.getId()) 
+						&& getCadastrante().getIdInicial().equals(marca.getDpPessoaIni().getId())) {
+					interessado = true;
+					break;
+				}
+			}
+			
+			if (!interessado && doc.getSubscritor() != null 
+					&& getCadastrante().getIdInicial().equals(doc.getSubscritor().getIdInicial())) {
+				ContextoPersistencia.upgradeToTransactional();
+				Ex.getInstance().getBL().vincularPapel(getCadastrante(), getLotaCadastrante(), geral, 
+						null, getLotaCadastrante(), getCadastrante(), getCadastrante(), getTitular(), 
+						null, null, dao().em().find(ExPapel.class, ExPapel.PAPEL_INTERESSADO));
+				ContextoPersistencia.flushTransactionAndDowngradeToNonTransactional();
+				
+				// Parece ser necessário aguardar algum tempo de depois redirecionar para que o documento
+				// recém criado apareça na lista
+				//
+				Thread.sleep(1000);
+				result.redirectTo("/app/expediente/doc/mesa-usuario-externo");
+				return;
+			}
+		}
+		
+		
 		Long pessoaId = null;
 		Long lotacaoId = null;
 		pessoaId = getTitular().getPessoaInicial().getId();
@@ -1231,7 +1267,13 @@ public class ExMobilController extends
 		Integer tamanho = dao().consultarQuantidadePorFiltroOtimizado(flt, getTitular(), getLotaTitular());
 
 		if (Objects.nonNull(tamanho)) {
-			final List<ExMobil> itens = dao().consultarPorFiltroOtimizado(flt, offset, getItemPagina(), getTitular(), getLotaTitular());
+			final List<Object[]> itens = dao().consultarPorFiltroOtimizado(flt, offset, getItemPagina(), getTitular(), getLotaTitular());
+			
+			for (Object[] item : itens) {
+				item[1] = ((ExDocumento) item[0]).getMobilDefaultParaReceberJuntada();
+				item[2] = ((ExMobil) item[1]).getExMarcaSetAtivas().first();
+			}
+			
 			getP().setOffset(offset);
 			setItemPagina(MAX_ITENS_PAGINA_CINQUENTA);
 			setItens(itens);

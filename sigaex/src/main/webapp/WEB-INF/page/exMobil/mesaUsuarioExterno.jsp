@@ -30,22 +30,20 @@
 				<thead class="${thead_color}">
 					<tr>
 						<th colspan="5" align="center">Documento</th>
-						<th colspan="4" align="center">Situação</th>
-					</tr>
-					<tr>
-						<th rowspan="2" align="right">Número</th>
-						<th rowspan="2" align="center">Data</th>
-						<th rowspan="2">Tipo</th>
-						<th rowspan="2"><fmt:message key="documento.modelo2" /></th>
-						<th rowspan="2"><fmt:message key="documento.descricao" /></th>
 						<th colspan="2" align="center">Atendente</th>
-						<th rowspan="2" align="center">Situação</th>
+						<th colspan="2" align="center">Situação</th>
 					</tr>
 					<tr>
+						<th rowspan="1" align="right">Número</th>
+						<th rowspan="1" align="center">Data</th>
+						<th rowspan="1">Tipo</th>
+						<th rowspan="1"><fmt:message key="documento.modelo2" /></th>
+						<th rowspan="1"><fmt:message key="documento.descricao" /></th>
 						<th align="center"><fmt:message key="usuario.lotacao" /></th>
 						<th align="center"><fmt:message key="usuario.pessoa" /></th>
+						<th rowspan="1" align="center">Estado</th>
+						<th rowspan="1" align="center">Data</th>
 					</tr>
-
 				</thead>
 
 				<siga:paginador maxItens="${itemPagina}" maxIndices="10"
@@ -58,13 +56,15 @@
 							<c:set var="exibedoc" value="fisicoeven" />
 						</c:otherwise>
 					</c:choose>
+					<c:set var="url"
+						value="/sigaex/app/arquivo/exibir?completo=1&arquivo=${documento[0].getMobilDefaultParaReceberJuntada().getSiglaCompacta()}.pdf" />
 
 					<tr class="${exibedoc}">
-						<td width="11.5%">${documento[1].sigla}</td>
-						<td width="5%">${documento[0].dtDocDDMMYY}</td>
+						<td><a href="${url}" target="_blank">${documento[1].sigla}</a></td>
+						<td>${documento[0].dtDocDDMMYY}</td>
 						<c:if test="${documento[1].numSequencia != 0}">
-							<td width="6%">${documento[0].descrFormaDoc}</td>
-							<td width="6%">${documento[0].nmMod}</td>
+							<td>${documento[0].descrFormaDoc}</td>
+							<td>${documento[0].nmMod}</td>
 
 							<c:set var="acessivel" value="" />
 							<c:set var="acessivel"
@@ -79,13 +79,12 @@
 										test="${f:mostraDescricaoConfidencial(documento[0], titular, lotaTitular) eq true}">
 										<c:set var="estilo" value="confidencial" />
 									</c:if>
-									<td class="${estilo}" width="38%">
+									<td class="${estilo}">
 										${f:descricaoSePuderAcessar(documento[0], titular, lotaTitular)}</td>
 									<c:if test="${visualizacao == 1}">
-										<td class="${estilo}" width="38%">
+										<td class="${estilo}">
 											${f:anotacaoConfidencial(documento[1], titular,lotaTitular)}</td>
 									</c:if>
-
 								</c:when>
 								<c:otherwise>
 									<c:choose>
@@ -103,27 +102,10 @@
 									</c:choose>
 								</c:otherwise>
 							</c:choose>
-
-							<td width="10.5%" align="center">
-								${documento[2].cpMarcador.descrMarcador}</td>
-							<td width="5%" align="center">
-								${documento[2].dtIniMarcaDDMMYYYY}</td>
-							<td width="4%" align="center"><siga:selecionado
-									sigla="${documento[2].dpLotacaoIni.lotacaoAtual.sigla}"
-									descricao="${documento[2].dpLotacaoIni.lotacaoAtual.descricao}"
-									lotacaoParam="${documento[2].dpLotacaoIni.orgaoUsuario.siglaOrgaoUsu}${documento[2].dpLotacaoIni.sigla}" />
-							</td>
-							<td width="4%" align="center"><siga:selecionado
-									sigla="${documento[2].dpPessoaIni.iniciais}"
-									descricao="${documento[2].dpPessoaIni.descricao}"
-									pessoaParam="${documento[2].dpPessoaIni.sigla}" /></td>
-
-						</c:if>
-						<c:if test="${documento[1].numSequencia == 0}">
-							<td width="5%" align="center">tag1</td>
-							<td width="4%" align="center"></td>
-							<td width="4%" align="center"></td>
-							<td width="10.5%" align="center">tag4</td>
+							<td align="left">${documento[2].dpLotacaoIni.lotacaoAtual.descricao}</td>
+							<td align="left">${documento[2].dpPessoaIni.descricao}</td>
+							<td align="left">${documento[2].cpMarcador.descrMarcador}</td>
+							<td align="left">${documento[2].dtIniMarcaDDMMYYYY}</td>
 						</c:if>
 					</tr>
 				</siga:paginador>

@@ -67,7 +67,7 @@
 				<c:if test="${doc.pdf != null}">
 					<div class="card-body bg-white p-0">
 						<c:set var="url"
-							value="/sigaex/app/arquivo/exibir?semmarcas=1&completo=1&arquivo=${doc.getPrimeiroMobil().getSiglaCompacta()}.pdf" />
+							value="/sigaex/app/arquivo/exibir?semmarcas=1&completo=1&arquivo=${doc.getMobilDefaultParaReceberJuntada().getSiglaCompacta()}.pdf" />
 						<input type="hidden" id="visualizador"
 							value="${f:resource('/sigaex.pdf.visualizador') }" />
 						<iframe style="display: block;" name="painel" id="painel" src=""
@@ -120,7 +120,7 @@
 
 							<input type="hidden" name="ad_url_base" value="" /> <input
 								type="hidden" name="ad_url_next"
-								value="/sigaex/app/expediente/doc/exibir?sigla=${sigla}" /> 
+								value="/sigaex/app/expediente/doc/mesa-usuario-externo?sigla=${siglaDocumentoPrincipal}" /> 
 							<input type="hidden" name="ad_usuario_externo" value="${usuarioExterno}" />
 
 							<c:forEach var="juntado" items="${juntados}">
