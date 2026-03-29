@@ -898,8 +898,6 @@ public class ExDocumentoController extends ExController {
 		result.include("podeExibirArvoreDocsSubscr", podeExibirArvoreDocsSubscr);
 		result.include("tamanhoMaximoArquivo", TAMANHO_MAXIMO_CAPTURADO);
 		result.include("tamanhoMaximoArquivoFormatoLivre", TAMANHO_MAXIMO_CAPTURADO_FORMATO_LIVRE);
-		result.include("usuarioExterno", isUsuarioExterno());
-		
 
 		// Desabilita a proteção contra injeção maldosa de html e js
 		this.response.addHeader("X-XSS-Protection", "0");

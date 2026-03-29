@@ -154,6 +154,7 @@ public class SigaController {
 		result.include("meusDelegados", getMeusDelegados());
 		result.include("identidadeCadastrante", getIdentidadeCadastrante());
 		result.include("logadoviaGovBr",(request.getSession().getAttribute(CallBackServlet.PUBLIC_CPF_USER_SSO) != null?true:false));
+		result.include("usuarioExterno", isUsuarioExterno());
 	}
 
 	@Inject
@@ -305,7 +306,7 @@ public class SigaController {
 	protected boolean isUsuarioExterno() {
 		return CpBL.isUsuarioExterno(getCadastrante(), getLotaTitular());
 	}
-
+	
 	protected String param(final String parameterName) {
 		final String[] as = getRequest().getParameterValues(parameterName);
 		if (as == null || as[0].equals("null"))
