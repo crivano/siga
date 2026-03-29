@@ -502,6 +502,7 @@ public class ExDocumentoController extends ExController {
 		return exDocumentoDTO;
 	}
 
+	@UsuarioExterno
 	@Post("app/expediente/doc/editar")
 	@Get("app/expediente/doc/editar")
 	@RequestParamsPermissiveCheck
@@ -1654,6 +1655,7 @@ public class ExDocumentoController extends ExController {
 	
 	@Transacional
 	@RequestParamsPermissiveCheck
+	@UsuarioExterno
 	@Post("/app/expediente/doc/gravar")
 	public void gravar(final ExDocumentoDTO exDocumentoDTO,
 			final String[] vars, final String[] campos,

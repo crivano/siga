@@ -28,6 +28,7 @@ import br.gov.jfrj.siga.base.RequestInfo;
 import br.gov.jfrj.siga.base.log.RequestLoggerFilter;
 import br.gov.jfrj.siga.cp.CpIdentidade;
 import br.gov.jfrj.siga.cp.auth.AutenticadorFabrica;
+import br.gov.jfrj.siga.cp.bl.CpBL;
 import br.gov.jfrj.siga.dp.DpLotacao;
 import br.gov.jfrj.siga.dp.DpPessoa;
 import br.gov.jfrj.siga.dp.dao.CpDao;
@@ -38,6 +39,7 @@ import br.gov.jfrj.siga.vraptor.RequestParamsCheck;
 import br.gov.jfrj.siga.vraptor.RequestParamsPermissiveCheck;
 import br.gov.jfrj.siga.vraptor.SigaObjects;
 import br.gov.jfrj.siga.vraptor.Transacional;
+import br.gov.jfrj.siga.vraptor.UsuarioExterno;
 
 abstract public class ApiContextSupport extends SwaggerApiContextSupport {
 
@@ -150,6 +152,13 @@ abstract public class ApiContextSupport extends SwaggerApiContextSupport {
 
 		if (ContextoPersistencia.getUserPrincipal() != null)
 			assertAcesso("");
+		
+		//Verifica se o usuário externo pode acessar esse método de API
+		if (!getCtx().getAction().getClass().isAnnotationPresent(UsuarioExterno.class)) {
+			if (CpBL.isUsuarioExterno(getCadastrante(), getLotaCadastrante())) {
+				throw new SwaggerAuthorizationException("Usuário externo não pode acessar esse método da API.");
+			}
+		}
 	}
 	
 	@Override

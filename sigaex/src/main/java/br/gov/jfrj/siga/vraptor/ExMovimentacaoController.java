@@ -881,6 +881,7 @@ public class ExMovimentacaoController extends ExController {
 	}
 	
 	@Transacional
+	@UsuarioExterno
 	@Get("app/expediente/mov/assinar-principal-e-juntados")
 	public void aAssinarPrincipalEJuntados(String sigla, Boolean autenticando) throws Exception {
 		aAssinar(sigla, autenticando);
@@ -3482,6 +3483,7 @@ public class ExMovimentacaoController extends ExController {
 	}
 
 	@Transacional
+	@UsuarioExterno
 	@Post("/app/expediente/mov/assinar_senha_gravar")
 	public void aAssinarSenhaGravar(String sigla, final Boolean copia, final Boolean juntar, 
 			final Boolean tramitar, final Boolean exibirNoProtocolo, String nomeUsuarioSubscritor,

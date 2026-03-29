@@ -1222,6 +1222,7 @@ public class ExMobilController extends
 		
 	}
 	
+	@UsuarioExterno
 	@Get("/app/expediente/doc/mesa-usuario-externo")
 	public void mesaUsuarioExterno(final String sigla, final int offset) throws InterruptedException {
 		
