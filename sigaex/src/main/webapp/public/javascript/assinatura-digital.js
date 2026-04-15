@@ -49,7 +49,7 @@ function TestarAssinaturaDigital() {
 // pagina
 //
 function AssinarDocumentos(copia, politica, juntar, tramitar, exibirNoProtocolo) {
-	gUsuarioExterno = document.getElementsByName("ad_usuario_externo")[0].value === 'true';
+	gUsuarioExterno = document.getElementsByName("ad_usuario_externo") ? document.getElementsByName("ad_usuario_externo")[0].value === 'true' : false;
 
 	if (gAssinando)
 		return;

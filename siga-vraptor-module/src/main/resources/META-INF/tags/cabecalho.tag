@@ -173,7 +173,7 @@ ${meta}
 
 <body onload="${onLoad}" class="${body_color}" style="${usuarioExterno ? 'margin-top: 1em;' : ''}">
 	<c:if test="${popup!='true'}">
-		<div style="display: ${usuarioExterno ? 'none' : 'block; margin-top: 1em;'}">
+		<div style="display: ${usuarioExterno ? 'none' : 'block'}">
    		<nav id="siga-top-menu" class="navbar navbar-expand-lg ${navbar_class} ${menu_class}">
 			<a class="navbar-brand pt-0 pb-0" href="/siga"> <img
 				src="${navbar_logo}" height="${navbar_logo_size}">

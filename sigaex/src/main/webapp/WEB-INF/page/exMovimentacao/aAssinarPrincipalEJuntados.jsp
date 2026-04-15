@@ -67,7 +67,7 @@
 				<c:if test="${doc.pdf != null}">
 					<div class="card-body bg-white p-0">
 						<c:set var="url"
-							value="/sigaex/app/arquivo/exibir?semmarcas=1&completo=1&arquivo=${doc.getMobilDefaultParaReceberJuntada().getSiglaCompacta()}.pdf" />
+							value="/sigaex/app/arquivo/exibir?semmarcas=1&completo=1&arquivo=${doc.getMobilDefaultParaReceberJuntada() ? doc.getMobilDefaultParaReceberJuntada().getSiglaCompacta() : doc.getMobilGeral().getSiglaCompacta()}.pdf" />
 						<input type="hidden" id="visualizador"
 							value="${f:resource('/sigaex.pdf.visualizador') }" />
 						<iframe style="display: block;" name="painel" id="painel" src=""
@@ -158,10 +158,12 @@
 							value="${f:deveUtilizarSegundoFatorPin(cadastrante,cadastrante.lotacao)}" />
 						<c:set var="defaultUtilizarSegundoFatorPin"
 							value="${f:defaultUtilizarSegundoFatorPin(cadastrante,cadastrante.lotacao) }" />
-
+							
 						<tags:assinatura_botoes assinar="${assinando}"
 							voltar="${voltarAtivo}"
 							linkVoltar="${pageContext.request.contextPath}/app/expediente/doc/editar?sigla=${sigla}"
+							assinarComSenhaPin="${podeAssinarComSenha and obrigatorioUtilizarSegundoFatorPin}"
+							assinarComSenhaPinChecado="${podeAssinarComSenha and defaultUtilizarSegundoFatorPin}"
 							assinarComSenha="${podeAssinarComSenha and not obrigatorioUtilizarSegundoFatorPin}"
 							assinarComSenhaChecado="${podeAssinarComSenha and defaultAssinarComSenha and not defaultUtilizarSegundoFatorPin}" />
 
