@@ -890,14 +890,20 @@ public class ExMovimentacaoController extends ExController {
 				.setSigla(sigla);
 		ExDocumento doc = buscarDocumento(builder);
 		Ex.getInstance().getBL().tratarDocumentosSubmetidosNaEntrevista(getCadastrante(), getLotaCadastrante(), getTitular(), getLotaTitular(), doc);
-		ExMobil mob = doc.getPrimeiroMobil();
 		List<ExDocumento> l = new ArrayList<>();
 		if (doc.isPendenteDeAssinatura())
 			l.add(doc);
-		for (ExMovimentacao mov : mob.getMovimentacoesReferenciaPorTipo(ExTipoDeMovimentacao.JUNTADA, true)) {
-			ExDocumento juntado = (ExDocumento) Hibernate.unproxy(mov.getExMobil().doc());
-			if (juntado.isPendenteDeAssinatura())
-				l.add(juntado);
+
+		ExMobil mob = doc.getPrimeiroMobil();
+		if (mob != null) {
+			List<ExMovimentacao> movimentacoesReferenciaPorTipo = mob.getMovimentacoesReferenciaPorTipo(ExTipoDeMovimentacao.JUNTADA, true);
+			if (movimentacoesReferenciaPorTipo != null) {
+				for (ExMovimentacao mov : movimentacoesReferenciaPorTipo) {
+					ExDocumento juntado = (ExDocumento) Hibernate.unproxy(mov.getExMobil().doc());
+					if (juntado.isPendenteDeAssinatura())
+						l.add(juntado);
+				}
+			}
 		}
 		result.include("juntados", l);
 		result.include("usuarioExterno", isUsuarioExterno());
