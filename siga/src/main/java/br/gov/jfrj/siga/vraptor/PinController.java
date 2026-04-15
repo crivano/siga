@@ -39,12 +39,13 @@ public class PinController extends SigaController {
 		
 	@Get
 	@Path("/cadastro")
-	public void cadastro() throws Exception {	
+	public void cadastro(String redirect) throws Exception {	
 		
 		if (!Cp.getInstance().getComp().podeSegundoFatorPin( getCadastrante(), getLotaCadastrante())) {
 			throw new AplicacaoException("PIN como Segundo Fator de Autenticação: Acesso não permitido a esse recurso.");
 		}
 		result.include("baseTeste", Prop.getBool("/siga.base.teste"));
+		result.include("redirect", redirect);
 	}
 	
 	@Get

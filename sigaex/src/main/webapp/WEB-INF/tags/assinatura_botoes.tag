@@ -25,19 +25,22 @@
 <%@ attribute name="tramitarExplicacao" required="false"%>
 <%@ attribute name="exibirNoProtocoloAtivo" required="false"%>
 <%@ attribute name="exibirNoProtocoloFixo" required="false"%>
+<%@ attribute name="linkPaginaAtual" required="false"%>
 
-<div class="pt-2 pb-2">
+<div class="col pt-2 pb-2">
 	<div class="row">
-		<div class="col-12 my-auto">
-		
+		<c:if test="${(assinarComSenhaPinChecado || autenticarComSenhaPinChecado) and empty identidadeCadastrante.pinIdentidade}">
+			<div class="col-12 mb-4">Você deve utilizar um PIN para realizar a assinatura, no entanto, ele ainda não foi definido. Clique no botão abaixo para definir o PIN e depois você será redirecionado de volta para essa página para assinar.</div>
+		</c:if>
+	
+		<div class="col-auto my-auto">
 			<c:if test="${not empty voltar and voltar}">
-				<p>Você deve utilizar um PIN para realizar a assinatura, no entanto, ele ainda não foi definido. Clique no botão abaixo para definir o PIN e depois você será redirecionado de volta para essa página para assinar.</p>
 				<input type="button" value="Voltar" onclick="${(empty linkVoltar) ? 'javascript:history.back();' : 'javascript:window.location.href=\''.concat(linkVoltar).concat('\';')}" class="btn btn-secondary mr-2" />
 			</c:if>
 			
 			<c:choose>
 				<c:when test="${(assinarComSenhaPinChecado || autenticarComSenhaPinChecado) and empty identidadeCadastrante.pinIdentidade}">
-					<a href='/siga/app/pin/cadastro'class="btn btn-primary mr-2">Definir PIN</a>
+					<a href='/siga/app/pin/cadastro${not empty linkPaginaAtual ? '?redirect='.concat(linkPaginaAtual) : ''}'class="btn btn-primary mr-2">Definir PIN</a>
 				</c:when> 
 				<c:otherwise>
 					<c:choose>

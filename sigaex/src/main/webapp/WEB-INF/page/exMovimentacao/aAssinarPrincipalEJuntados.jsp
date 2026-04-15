@@ -165,7 +165,9 @@
 							assinarComSenhaPin="${podeAssinarComSenha and obrigatorioUtilizarSegundoFatorPin}"
 							assinarComSenhaPinChecado="${podeAssinarComSenha and defaultUtilizarSegundoFatorPin}"
 							assinarComSenha="${podeAssinarComSenha and not obrigatorioUtilizarSegundoFatorPin}"
-							assinarComSenhaChecado="${podeAssinarComSenha and defaultAssinarComSenha and not defaultUtilizarSegundoFatorPin}" />
+							assinarComSenhaChecado="${podeAssinarComSenha and defaultAssinarComSenha and not defaultUtilizarSegundoFatorPin}" 
+							linkPaginaAtual="${pageContext.request.contextPath}/app/expediente/mov/assinar-principal-e-juntados?sigla=${sigla}"
+						/>
 
 					</div>
 				</div>
