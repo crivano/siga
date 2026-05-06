@@ -5493,7 +5493,7 @@ Exemplos de utilização:
 			[#if kind == "texto"]
 				<input type="text" id="${var}" name="${var}" value="${v}" ${refresh_inc!} ${maxchars_inc!} ${placeholder_inc!} ${attsHtml} onkeyup="${onkeyup!}" class="form-control" [#if isCpf]data-formatar-cpf="true"[#elseif isCnpj]data-formatar-cnpj="true"[#elseif isTelefone]data-formatar-telefone="true"[#else][/#if]/>
 				[#if isCpf]    
-					<script>
+					<script type="text/javascript">
 						function aplicarMascaraCPF(evento) {	     			             
 							cpf = this.value.replace(/([^\d])/g, '');
 
@@ -5511,7 +5511,7 @@ Exemplos de utilização:
 						document.querySelector('input[name=${var}]').addEventListener('change', aplicarMascaraCPF);
 					</script>  
 				[#elseif isCnpj]
-					<script>
+					<script type="text/javascript">
 						function aplicarMascaraCNPJ(evento) {	     			             
 							cnpj = this.value.replace(/([^\d])/g, '');
 
@@ -5530,7 +5530,7 @@ Exemplos de utilização:
 						document.querySelector('input[name=${var}]').addEventListener('change', aplicarMascaraCNPJ);
 					</script> 
           		[#elseif isTelefone]
-					<script>
+					<script type="text/javascript">
 						function aplicarMascaraTELEFONE(evento) {	     			             
 							telefone = this.value.replace(/([^\d])/g, '');               
     							telefone = telefone.replace(/^(\d\d)(\d)/g,"($1) $2");
@@ -5564,7 +5564,7 @@ Exemplos de utilização:
 					[@inlineTemplate/]
 				[/#if]
 				[#if v == value]
-					<script>document.getElementById('${var}').value = '${value}';</script>
+					<script type="text/javascript">document.getElementById('${var}').value = '${value}';</script>
 				[/#if]
 				<div class="custom-control custom-radio">
 					<input class="form-check-input" type="radio" id="${id}" name="${var}_chk" value="${value}" [#if v == value]checked[/#if] onclick="javascript: if (this.checked) document.getElementById('${var}').value = '${value}'; ${onclique!}; ${refresh_js!};" ${attsHtml} [#if id == ""]data-criar-id="true"[/#if]/>     			
@@ -5971,6 +5971,7 @@ Exemplos de utilização:
 
 [#macro field_file var title model="" refresh=false required=false col="col-12" hint=""]
     [#local v = .vars[var]!""]
+    [#local vfn = .vars[var+'_filename']!""]
     [#local idAjax = "" /]
     [#if refresh?is_string][#local idAjax = refresh /][/#if]
     <input type="hidden" id="${var}" name="${var}" value="${v}"/>
@@ -5979,6 +5980,8 @@ Exemplos de utilização:
 	[#assign contadorDeDocumentosASeremJuntados = contadorDeDocumentosASeremJuntados + 1 /]
     <input type="hidden" name="vars" value="${var}_document_submission_index" />
     <input type="hidden" name="${var}_document_submission_index" value="${contadorDeDocumentosASeremJuntados}"/>
+    <input type="hidden" name="vars" value="${var}_filename" />
+    <input type="hidden" name="${var}_filename" value="${vfn}" id="${var}_filename"/>
     
     [#-- Área de Upload --]
     <div id="upload_zone_${var}" style="display: [#if v == ""]block[#else]none[/#if];">
@@ -5998,7 +6001,7 @@ Exemplos de utilização:
     [#-- Área de Resultado --]
     <div id="result_zone_${var}" style="display: [#if v != ""]flex[#else]none[/#if]; align-items: center;">
         <div class="input-group">
-            <input type="text" class="form-control" value="Documento vinculado: ${v}" readonly 
+            <input type="text" class="form-control" value="${(vfn??)?then(vfn,v)}" readonly 
                    style="background-color: #e9ecef; font-weight: bold; color: #28a745;" id="id_display_${var}" />
             <div class="input-group-append">
                 <button class="btn btn-outline-danger" type="button" onclick="clearFile_${var}()">
@@ -6013,6 +6016,7 @@ Exemplos de utilização:
         if (!inputEl.files || inputEl.files.length === 0) return;
 
         var file = inputEl.files[0];
+        var filename = file.name;
         var formData = new FormData();
         
         // Parâmetro corrigido para 'model' conforme solicitado
@@ -6044,7 +6048,8 @@ Exemplos de utilização:
                 if (data && data.sigladoc) {
                     var sigla = data.sigladoc;
                     document.getElementById("${var}").value = sigla;
-                    $("#id_display_${var}").val("Documento vinculado: " + sigla);
+                    document.getElementById("${var}_filename").value = filename;
+                    $("#id_display_${var}").val(filename);
                     
                     $("#upload_zone_${var}").hide();
                     $("#result_zone_${var}").css("display", "flex");
