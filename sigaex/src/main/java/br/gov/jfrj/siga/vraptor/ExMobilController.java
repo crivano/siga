@@ -1271,8 +1271,15 @@ public class ExMobilController extends
 			final List<Object[]> itens = dao().consultarPorFiltroOtimizado(flt, offset, getItemPagina(), getTitular(), getLotaTitular());
 			
 			for (Object[] item : itens) {
-				item[1] = ((ExDocumento) item[0]).getMobilDefaultParaReceberJuntada();
-				item[2] = ((ExMobil) item[1]).getExMarcaSetAtivas().first();
+				ExMobil m = (ExMobil) ((ExDocumento) item[0]).getMobilDefaultParaReceberJuntada();
+				item[1] = m;
+				item[2] = null;
+				if (m == null) 
+					continue;
+				SortedSet<ExMarca> set = m.getExMarcaSetAtivas();
+				if (set == null || set.isEmpty())
+					continue;
+				item[2] = set.first();
 			}
 			
 			getP().setOffset(offset);

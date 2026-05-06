@@ -67,7 +67,7 @@
 				<c:if test="${doc.pdf != null}">
 					<div class="card-body bg-white p-0">
 						<c:set var="url"
-							value="/sigaex/app/arquivo/exibir?semmarcas=1&completo=1&arquivo=${doc.getMobilDefaultParaReceberJuntada() ? doc.getMobilDefaultParaReceberJuntada().getSiglaCompacta() : doc.getMobilGeral().getSiglaCompacta()}.pdf" />
+							value="/sigaex/app/arquivo/exibir?semmarcas=1&completo=1&arquivo=${(not empty doc.getMobilDefaultParaReceberJuntada()) ? doc.getMobilDefaultParaReceberJuntada().getSiglaCompacta() : doc.getMobilGeral().getSiglaCompacta()}.pdf" />
 						<input type="hidden" id="visualizador"
 							value="${f:resource('/sigaex.pdf.visualizador') }" />
 						<iframe style="display: block;" name="painel" id="painel" src=""

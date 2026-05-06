@@ -190,7 +190,7 @@ public class ExArquivoController extends ExController {
 				
 				DocumentosSiglaArquivoGet.iniciarGeracaoDePdf(req, resp, ContextoPersistencia.getUserPrincipal(),
 						filename, contextpath, servernameport, reduzirVisuAssinPdf);
-				result.redirectTo("/app/arquivo/status/" + mob.getCodigoCompacto() + "/" + resp.uuid + "/"
+				result.redirectTo(Prop.get("/siga.base.url") + "/sigaex/app/arquivo/status/" + mob.getCodigoCompacto() + "/" + resp.uuid + "/"
 						+ resp.jwt + "/" + filename);
 				return null;
 			}

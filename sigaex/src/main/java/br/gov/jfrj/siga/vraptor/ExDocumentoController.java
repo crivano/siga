@@ -475,6 +475,7 @@ public class ExDocumentoController extends ExController {
 				exDocumentoDTO.getSigla());
 	}
 
+	@UsuarioExterno
 	@RequestParamsPermissiveCheck
 	@Post("app/expediente/doc/recarregar")
 	public ExDocumentoDTO recarregar(final ExDocumentoDTO exDocumentoDTO,

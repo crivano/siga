@@ -17,6 +17,7 @@ public class ContextoPersistencia {
     private final static ThreadLocal<UsuarioDeSistemaEnum> usuarioDeSistema = new ThreadLocal<>();
     private final static ThreadLocal<List<AfterCommit>> afterCommit = new ThreadLocal<>();
 	private final static ThreadLocal<DadosParaCriacaoDeUsuario> dadosParaCriacaoDeUsuarioByThread = new ThreadLocal<>();
+	private final static ThreadLocal<Boolean> usuarioExternoByThread = new ThreadLocal<>();
 	
 	public interface AfterCommit {
 	    void run();
@@ -141,12 +142,20 @@ public class ContextoPersistencia {
 		return dataEHoraDoServidor.get();
 	}
 	
+	static public void setUsuarioExterno(Boolean b) {
+		usuarioExternoByThread.set(b);
+	}
+
 	static public void setUsuarioDeSistema(UsuarioDeSistemaEnum u) {
 		usuarioDeSistema.set(u);
 	}
 
 	static public UsuarioDeSistemaEnum getUsuarioDeSistema() {
 		return usuarioDeSistema.get();
+	}
+
+	static public Boolean isUsuarioExterno() {
+		return usuarioExternoByThread.get();
 	}
 
 	static public void removeUsuarioDeSistema() {

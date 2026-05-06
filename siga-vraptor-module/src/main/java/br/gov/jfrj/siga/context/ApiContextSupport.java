@@ -150,13 +150,17 @@ abstract public class ApiContextSupport extends SwaggerApiContextSupport {
 		//Verifica a conformidade dos parâmetros informados antes de continuar
 		checkRequestParams();
 
-		if (ContextoPersistencia.getUserPrincipal() != null)
+		if (ContextoPersistencia.getUserPrincipal() != null) {
 			assertAcesso("");
-		
-		//Verifica se o usuário externo pode acessar esse método de API
-		if (!getCtx().getAction().getClass().isAnnotationPresent(UsuarioExterno.class)) {
-			if (CpBL.isUsuarioExterno(getCadastrante(), getLotaCadastrante())) {
-				throw new SwaggerAuthorizationException("Usuário externo não pode acessar esse método da API.");
+
+			//Testar acesso de usuário externo apenas para requests que são sejam de AcessoPublico
+			boolean b = CpBL.isUsuarioExterno(getCadastrante(), getLotaCadastrante());
+			ContextoPersistencia.setUsuarioExterno(b);
+			//Verifica se o usuário externo pode acessar esse método de API
+			if (!getCtx().getAction().getClass().isAnnotationPresent(UsuarioExterno.class)) {
+				if (b) {
+					throw new SwaggerAuthorizationException("Usuário externo não pode acessar esse método da API.");
+				}
 			}
 		}
 	}

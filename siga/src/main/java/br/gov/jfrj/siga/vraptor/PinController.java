@@ -37,6 +37,7 @@ public class PinController extends SigaController {
 		super(request, result, CpDao.getInstance(), so, em);
 	}
 		
+	@UsuarioExterno
 	@Get
 	@Path("/cadastro")
 	public void cadastro(String redirect) throws Exception {	
