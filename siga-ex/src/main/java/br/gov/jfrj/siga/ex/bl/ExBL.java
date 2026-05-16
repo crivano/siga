@@ -3511,11 +3511,15 @@ public class ExBL extends CpBL {
 		int index; 
 		String sigla;
 		String siglaAlterada;
+		String config;
+		ExMobil mob;
+		ExDocumento doc;
 		
-		public SubmittedDocumentInfo(String key, String index, String sigla) {
+		public SubmittedDocumentInfo(String key, String index, String sigla, String config) {
 			this.key = key;
 			this.index = Integer.parseInt(index);
 			this.sigla = sigla;
+			this.config = config;
 		}
 
 		@Override
@@ -3558,60 +3562,109 @@ public class ExBL extends CpBL {
 			if (!key.endsWith(SUBMISSION_ENDING))
 				continue;
 			String var = key.substring(0, key.length() - SUBMISSION_ENDING.length());
-			submittedSet.add(new SubmittedDocumentInfo(var, form.get(key), form.get(var)));
+			submittedSet.add(new SubmittedDocumentInfo(var, form.get(key), form.get(var), form.get(key + "_config")));
 		}
 		if (submittedSet.size() == 0)
 			return;
-
-		// Finaliza os documentos submetidos para que possam ser juntados
-		ExMobil primeiroMob = doc.getMobilDefaultParaReceberJuntada();
+		
+		// Finaliza os documentos a serem apensados ou juntados
 		boolean isFormAltered = false;
+		for (SubmittedDocumentInfo submitted : submittedSet) {
+			submitted.mob = dao().consultarPorSigla(submitted.sigla);
+			submitted.doc = submitted.mob.getExDocumento();
+			if (!submitted.doc.isFinalizado()) {
+				finalizar(cadastrante, lotaTitular, titular, lotaTitular, submitted.doc);
+				submitted.mob = submitted.doc.getPrimeiroMobil();
+				submitted.siglaAlterada = submitted.mob.getSigla();
+				form.put(submitted.key, submitted.mob.getSigla());
+				isFormAltered = true;
+			} else
+				submitted.mob = submitted.doc.getPrimeiroMobil();
+		}
+		
+		// Cria um set com os documentos a serem apensados
+		SortedSet<SubmittedDocumentInfo> attachedSet = new TreeSet<>();
+		for (SubmittedDocumentInfo submitted : submittedSet) {
+			if ("apenso".equals(submitted.config))
+				attachedSet.add(submitted);
+		}
+		submittedSet.remove(attachedSet);
+
+		ExMobil primeiroMob = doc.getMobilDefaultParaReceberJuntada();
+		
+		// Localiza as movimentações de juntada já existentes
+		SortedSet<ExMobil> apensos = primeiroMob.getApensos();
+		
+		if (attachedSet.size() > 0) {
+			// Trata os apensos
+			for (SubmittedDocumentInfo attached : attachedSet) {
+				if (primeiroMob == null)
+					continue;
+
+				boolean jaApensado = false;
+				for (ExMobil ma : apensos) {
+					if (attached.mob.equals(ma)) {
+						jaApensado = true;
+						apensos.remove(ma);
+						break;
+					}
+				}
+				if (jaApensado) 
+					continue;
+
+				// Apensar o mobil correto
+				if (!attached.mob.isApensado()) {
+					apensarDocumento(cadastrante, titular, lotaCadastrante, attached.mob,
+							primeiroMob, null, null, titular);
+					gravaDescrDocumento(titular, lotaTitular, attached.doc);
+				}
+			}
+			
+			// Se sobrou algum apenso, remover
+			for (ExMobil ma : apensos) {
+				desapensarDocumento(cadastrante, lotaCadastrante, ma, null, null, titular);
+			}
+		}
+
+		if (submittedSet.size() == 0)
+			return;
 		
 		// Localiza as movimentações de juntada já existentes
 		List<ExMovimentacao> juntadas = juntadasAtivas(primeiroMob);
 		
-//		System.out.println("Documentos submetidos na entrevista:");
 		int i = 0;
 		Set<ExDocumento> filhosJuntados = new TreeSet<>();
 		for (SubmittedDocumentInfo submitted : submittedSet) {
-//			System.out.println(submitted.key + " - " + submitted.index);
-			ExMobil mob = dao().consultarPorSigla(submitted.sigla);
-			final ExDocumento d = mob.getExDocumento();
 			if (primeiroMob != null) {
-				d.setExMobilPai(primeiroMob);
-				gravaDescrDocumento(titular, lotaTitular, d);
-			}
-			if (!d.isFinalizado()) {
-				finalizar(cadastrante, lotaTitular, titular, lotaTitular, d);
-				mob = mob.getExDocumento().getPrimeiroMobil();
-				submitted.siglaAlterada = mob.getSigla();
-				form.put(submitted.key, mob.getSigla());
-				isFormAltered = true;
+				submitted.doc.setExMobilPai(primeiroMob);
+				gravaDescrDocumento(titular, lotaTitular, submitted.doc);
 			}
 			
 			if (primeiroMob == null)
 				continue;
 
-			filhosJuntados.add(mob.doc());
+			filhosJuntados.add(submitted.doc);
 
 			// Verifica se já está juntado e na order correta
 			final ExMovimentacao juntada = juntadas.size() > i ? juntadas.get(i++) : null; 
 			if (juntada != null 
-					&& mob.isJuntado() 
-					&& mob.equals(juntada.getExMobil()) 
+					&& submitted.mob.isJuntado() 
+					&& submitted.mob.equals(juntada.getExMobil()) 
 					&& primeiroMob.equals(juntada.getExMobilRef())) {
 				continue;
 			}
 			
 			// Se houve alteração nem alguma juntada, cancela todas as juntadas daqui para frente
 			for (int j = juntadas.size() - 1; j >= 0 && j >= i - 1; j--) {
-				cancelarJuntada(cadastrante, lotaCadastrante, juntadas.get(j).mob(), null, cadastrante, titular, "Juntada automática de documento submetido na entrevista cancelada por alteração no documento antes da assinatura.");
+				cancelarJuntada(cadastrante, lotaCadastrante, juntadas.get(j).mob(), null, 
+						cadastrante, titular, 
+						"Juntada automática de documento submetido na entrevista cancelada por alteração no documento antes da assinatura.");
 			}
 			juntadas.clear();
 			
 			// Juntar o mobil correto
-			if (!mob.isJuntado()) {
-				juntarDocumento(cadastrante, titular, lotaCadastrante, null, mob,
+			if (!submitted.mob.isJuntado()) {
+				juntarDocumento(cadastrante, titular, lotaCadastrante, null, submitted.mob,
 						primeiroMob, null, null, titular, "1");
 			}
 		}

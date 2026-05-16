@@ -5396,7 +5396,7 @@ Exemplos de utilização:
 [@field kind="radio" var="radNumeral" title="Terceiro" value="Terceiro" refresh="rad" /]
 [@group depend="rad"]${radNumeral!}[/@group]
 --]
-[#macro field_impl var title=var kind="" maxchars="" refresh=false required=false columns=80 lines=3  value="" default="" options="" searchClosed=false atts={} id="" col="" hint="" model=""]
+[#macro field_impl var title=var kind="" maxchars="" refresh=false required=false columns=80 lines=3  value="" default="" options="" searchClosed=false atts={} id="" col="" hint="" model="" config=""]
     [#if gerar_formulario!false]
     	[#return]
     [/#if]
@@ -5955,7 +5955,7 @@ Exemplos de utilização:
 			[#elseif kind == "documento"]
 			    [@field_selectable tipo="expediente" modulo="sigaex" titulo=title var=var refresh_js=refresh_js paramList=paramList obrigatorio=required col=col hint=hint /]
 			[#elseif kind == "file"]
-        		[@field_file var=var title=title model=model refresh=refresh required=required col=col hint=hint /]
+        		[@field_file var=var title=title model=model refresh=refresh required=required col=col hint=hint config=config /]
     		[/#if]
 		        [#if required]            		    
 			   		<div class="invalid-feedback invalid-feedback-${var}${suffix!}">Preenchimento obrigatório</div>
@@ -5969,7 +5969,7 @@ Exemplos de utilização:
 
 [#assign contadorDeDocumentosASeremJuntados = 0 /]
 
-[#macro field_file var title model="" refresh=false required=false col="col-12" hint=""]
+[#macro field_file var title model="" refresh=false required=false col="col-12" hint="" config=""]
     [#local v = .vars[var]!""]
     [#local vfn = .vars[var+'_filename']!""]
     [#local idAjax = "" /]
@@ -5982,6 +5982,10 @@ Exemplos de utilização:
     <input type="hidden" name="${var}_document_submission_index" value="${contadorDeDocumentosASeremJuntados}"/>
     <input type="hidden" name="vars" value="${var}_filename" />
     <input type="hidden" name="${var}_filename" value="${vfn}" id="${var}_filename"/>
+    [#if config??]
+	    <input type="hidden" name="vars" value="${var}_config" />
+	    <input type="hidden" name="${var}_config" value="${config}" id="${var}_config"/>
+    [/#if]
     
     [#-- Área de Upload --]
     <div id="upload_zone_${var}" style="display: [#if v == ""]block[#else]none[/#if];">
