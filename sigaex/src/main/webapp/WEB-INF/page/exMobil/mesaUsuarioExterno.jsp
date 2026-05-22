@@ -12,6 +12,16 @@
 <siga:pagina titulo="Lista de Expedientes" popup="${popup}">
 	<div id="inicio" class="container-fluid content mb-3">
 		<h5>Mesa do Usuário Externo</h5>
+		
+		<p>
+		<c:if
+			test="${empty msgPesqErro and (not empty tamanho or tamanho > 0)}">
+			Consulte o andamento de seus documentos abaixo.
+		</c:if>
+		<c:if test="${not empty f:resource('/siga.usuario.externo.pagina.modelos.url') and empty f:resource('/siga.usuario.externo.pagina.modelos.botao')}">
+			Clique <a id="ver-modelos" href="${f:resource('/siga.usuario.externo.pagina.modelos.url')}">aqui</a> para ver a lista de modelos de documentos que o usuário externo pode criar.
+		</c:if>
+		</p>
 
 		<c:if test="${not empty msgPesqErro}">
 			<div id="msgPesqErro"

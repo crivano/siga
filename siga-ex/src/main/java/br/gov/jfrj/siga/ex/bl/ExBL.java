@@ -3511,14 +3511,16 @@ public class ExBL extends CpBL {
 		int index; 
 		String sigla;
 		String siglaAlterada;
+		String filename;
 		String config;
 		ExMobil mob;
 		ExDocumento doc;
 		
-		public SubmittedDocumentInfo(String key, String index, String sigla, String config) {
+		public SubmittedDocumentInfo(String key, String index, String sigla, String filename, String config) {
 			this.key = key;
 			this.index = Integer.parseInt(index);
 			this.sigla = sigla;
+			this.filename = filename;
 			this.config = config;
 		}
 
@@ -3562,15 +3564,23 @@ public class ExBL extends CpBL {
 			if (!key.endsWith(SUBMISSION_ENDING))
 				continue;
 			String var = key.substring(0, key.length() - SUBMISSION_ENDING.length());
-			submittedSet.add(new SubmittedDocumentInfo(var, form.get(key), form.get(var), form.get(key + "_config")));
+			submittedSet.add(new SubmittedDocumentInfo(var, form.get(key), form.get(var), form.get(var + "_filename"), form.get(var + "_config")));
 		}
 		if (submittedSet.size() == 0)
 			return;
 		
+		ExMobil primeiroMob = doc.getMobilDefaultParaReceberJuntada();
+		
 		// Finaliza os documentos a serem apensados ou juntados
 		boolean isFormAltered = false;
 		for (SubmittedDocumentInfo submitted : submittedSet) {
-			submitted.mob = dao().consultarPorSigla(submitted.sigla);
+			try {
+				submitted.mob = dao().consultarPorSigla(submitted.sigla);
+			} catch (Exception ex) {
+				// Documento auxiliar já foi excluido e transformado em movimentação
+				if ("auxiliar".equals(submitted.config))
+					continue;
+			}
 			submitted.doc = submitted.mob.getExDocumento();
 			if (!submitted.doc.isFinalizado()) {
 				finalizar(cadastrante, lotaTitular, titular, lotaTitular, submitted.doc);
@@ -3582,16 +3592,50 @@ public class ExBL extends CpBL {
 				submitted.mob = submitted.doc.getPrimeiroMobil();
 		}
 		
+		// Cria um set com os documentos a serem carregados como auxiliares
+		SortedSet<SubmittedDocumentInfo> auxiliarSet = new TreeSet<>();
+		for (SubmittedDocumentInfo submitted : submittedSet) {
+			if ("auxiliar".equals(submitted.config))
+				auxiliarSet.add(submitted);
+		}
+		submittedSet.removeAll(auxiliarSet);
+		
+		List<ExMovimentacao> auxiliaresAtivos = doc.getMobilGeral()
+				.getMovimentacoesPorTipo(ExTipoDeMovimentacao.ANEXACAO_DE_ARQUIVO_AUXILIAR, true);
+		Map<String, ExMovimentacao> mapAuxiliares = new TreeMap<>();
+		for (ExMovimentacao m : auxiliaresAtivos) {
+			mapAuxiliares.put(m.getNmArqMov(), m);
+		}
+		
+		// Arquivos auxiliares serão inseridos nas movimentações e depois o TMP será excluído
+		if (auxiliarSet.size() > 0) {
+			// Trata os apensos
+			for (SubmittedDocumentInfo auxiliar : auxiliarSet) {
+				if (primeiroMob == null)
+					continue;
+				if (mapAuxiliares.containsKey(auxiliar.filename) || auxiliar.mob == null) {
+					mapAuxiliares.remove(auxiliar.filename);
+					continue;
+				}
+				anexarArquivoAuxiliar(cadastrante, lotaCadastrante, doc.getMobilGeral(),
+						null, cadastrante, auxiliar.filename, titular,
+						lotaTitular, auxiliar.doc.getConteudoBlobPdf(), "application/pdf");
+				excluirDocumento(auxiliar.doc, titular, lotaTitular, true);
+			}
+			// Remove auxiliares não reaproveitados
+			for (ExMovimentacao m : mapAuxiliares.values()) {
+				excluirMovimentacao(m);
+			}
+		}
+
 		// Cria um set com os documentos a serem apensados
 		SortedSet<SubmittedDocumentInfo> attachedSet = new TreeSet<>();
 		for (SubmittedDocumentInfo submitted : submittedSet) {
 			if ("apenso".equals(submitted.config))
 				attachedSet.add(submitted);
 		}
-		submittedSet.remove(attachedSet);
+		submittedSet.removeAll(attachedSet);
 
-		ExMobil primeiroMob = doc.getMobilDefaultParaReceberJuntada();
-		
 		// Localiza as movimentações de juntada já existentes
 		SortedSet<ExMobil> apensos = primeiroMob.getApensos();
 		
@@ -7394,7 +7438,7 @@ public class ExBL extends CpBL {
 			throw new AplicacaoException("não é possível apensar a um documento não finalizado");
 
 		if (mobMestre.doc().isPendenteDeAssinatura())
-			throw new AplicacaoException("não é possível apensar a um documento não finalizado");
+			throw new AplicacaoException("não é possível apensar a um documento pendente de assinatura");
 
 		if (mobMestre.isGeral())
 			throw new AplicacaoException("[E necessário definir a via ou volume do documento ao qual se quer apensar");

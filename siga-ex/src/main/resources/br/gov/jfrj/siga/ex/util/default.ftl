@@ -5282,7 +5282,7 @@ ${texto}
 	[/#if]
 [/#compress][/#macro]
 
-[#macro field var index=(_index!'') title=var+index kind="" columns=80 lines=3 maxchars="" refresh=false required=false value="" default="" options="" searchClosed=false atts={} altered="" id="" col="" hint="" document=true sensitivity="" model=""]
+[#macro field var index=(_index!'') title=var+index kind="" columns=80 lines=3 maxchars="" refresh=false required=false value="" default="" options="" searchClosed=false atts={} altered="" id="" col="" hint="" document=true sensitivity="" model="" config=""]
 	[#if col?is_number]
 		[#local colr=('col-' + col) /]
 	[#elseif col?is_string]
@@ -5292,7 +5292,7 @@ ${texto}
 			[#local colr='col-12'/]
 		[/#if]
 	[/#if]
-	[@field_impl var=var+index title=title kind=kind columns=columns lines=lines maxchars=maxchars refresh=refresh required=required value=value default=default options=options searchClosed=searchClosed atts=atts id=id col=colr hint=hint model=model /]
+	[@field_impl var=var+index title=title kind=kind columns=columns lines=lines maxchars=maxchars refresh=refresh required=required value=value default=default options=options searchClosed=searchClosed atts=atts id=id col=colr hint=hint model=model config=config /]
 [/#macro]
 
 [#--
