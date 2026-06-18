@@ -122,4 +122,18 @@
 			</table>
 		</c:if>
 	</div>
+	
+    <script type="text/javascript">
+        function listarDocumentosMesaUsuarioExterno(offset) {
+            sigaSpinner.mostrar();
+
+            offset = offset == null ? 0 : offset;
+
+            window.location = '/sigaex/app/expediente/doc/mesa-usuario-externo'
+                + '?offset=' + offset;
+        }
+        function sbmt(offset) {
+        	listarDocumentosMesaUsuarioExterno(offset);
+        }
+    </script>
 </siga:pagina>
