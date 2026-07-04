@@ -3531,11 +3531,13 @@ public class ExBL extends CpBL {
 
 	};
 	
-	private List<ExMovimentacao> juntadasAtivas(ExMobil primeiroMob) {
+	public List<ExMovimentacao> juntadasAtivas(ExMobil primeiroMob) {
 		SortedSet<ExMovimentacao> movsRef = primeiroMob.getExMovimentacaoReferenciaSet();
 		List<ExMovimentacao> juntadas = new ArrayList<>();
 		if (movsRef != null) {
+//			String s = "";
 			for (ExMovimentacao m : movsRef) {
+//				s += "MovRef: " + m.getExTipoMovimentacao().getDescr() + ", Mob: " + (m.getExMobil() != null ? m.getExMobil().getSigla() : "-") + "\n";
 				if (m.getExTipoMovimentacao() == ExTipoDeMovimentacao.JUNTADA)
 					juntadas.add(m);
 				if (m.getExTipoMovimentacao() == ExTipoDeMovimentacao.CANCELAMENTO_JUNTADA) {
@@ -3548,6 +3550,7 @@ public class ExBL extends CpBL {
 					}
 				}
 			}
+//			System.out.println(s);
 		}
 		return juntadas;
 	}
@@ -3564,7 +3567,9 @@ public class ExBL extends CpBL {
 			if (!key.endsWith(SUBMISSION_ENDING))
 				continue;
 			String var = key.substring(0, key.length() - SUBMISSION_ENDING.length());
-			submittedSet.add(new SubmittedDocumentInfo(var, form.get(key), form.get(var), form.get(var + "_filename"), form.get(var + "_config")));
+			String sigla = form.get(var);
+			if (sigla != null && !sigla.isEmpty())
+				submittedSet.add(new SubmittedDocumentInfo(var, form.get(key), sigla, form.get(var + "_filename"), form.get(var + "_config")));
 		}
 		if (submittedSet.size() == 0)
 			return;
@@ -3578,18 +3583,21 @@ public class ExBL extends CpBL {
 				submitted.mob = dao().consultarPorSigla(submitted.sigla);
 			} catch (Exception ex) {
 				// Documento auxiliar já foi excluido e transformado em movimentação
-				if ("auxiliar".equals(submitted.config))
-					continue;
 			}
-			submitted.doc = submitted.mob.getExDocumento();
-			if (!submitted.doc.isFinalizado()) {
-				finalizar(cadastrante, lotaTitular, titular, lotaTitular, submitted.doc);
-				submitted.mob = submitted.doc.getPrimeiroMobil();
-				submitted.siglaAlterada = submitted.mob.getSigla();
-				form.put(submitted.key, submitted.mob.getSigla());
-				isFormAltered = true;
-			} else
-				submitted.mob = submitted.doc.getPrimeiroMobil();
+			if (submitted.mob != null)
+				submitted.doc = submitted.mob.getExDocumento();
+			if ("auxiliar".equals(submitted.config))
+				continue;
+			if (submitted.mob != null) {
+				if (!submitted.doc.isFinalizado()) {
+					finalizar(cadastrante, lotaTitular, titular, lotaTitular, submitted.doc);
+					submitted.mob = submitted.doc.getPrimeiroMobil();
+					submitted.siglaAlterada = submitted.mob.getSigla();
+					form.put(submitted.key, submitted.mob.getSigla());
+					isFormAltered = true;
+				} else
+					submitted.mob = submitted.doc.getPrimeiroMobil();
+			}
 		}
 		
 		// Cria um set com os documentos a serem carregados como auxiliares
@@ -3733,7 +3741,7 @@ public class ExBL extends CpBL {
 				if (new ExPodeExcluir(d.getMobilGeral(), titular, lotaTitular).eval()) {
 					excluirDocumento(doc, titular, lotaTitular, true);
 				} else {
-					cancelarDocumento(cadastrante, lotaCadastrante, d, "Documento submetido na entrevista, por usuário externo, por engano.");
+					cancelarDocumento(cadastrante, lotaCadastrante, d, "Documento submetido por engano na entrevista.");
 				}
 			}
 		}
@@ -6683,6 +6691,41 @@ public class ExBL extends CpBL {
 			}
 		}
 	}
+	
+	private void transferirInteressadosDoAutuadoParaOProcessoAdministrativo(final ExDocumento doc, 
+			final DpPessoa cadastrante, final DpLotacao lotaCadastrante, final Date dtMov) 
+					throws AplicacaoException, SQLException {
+		ExMobil mobAutuado = doc.getExMobilAutuado();
+		ExDocumento docAutuado = mobAutuado.doc();
+		ExMobil mobGeralAutuado = docAutuado.getMobilGeral();
+		
+		// Obter a lista de movimentações de vínculo de interessado
+		Set<ExMovimentacao> movsPapel = mobGeralAutuado.getMovsNaoCanceladas(
+				ExTipoDeMovimentacao.VINCULACAO_PAPEL);
+		Set<ExMovimentacao> movsInteressado = new HashSet<>();
+		for (ExMovimentacao mov : movsPapel) {
+			if (mov.getExPapel() != null && mov.getExPapel().getIdPapel().equals(ExPapel.PAPEL_INTERESSADO))
+				movsInteressado.add(mov);
+		}
+		
+		// Cria o papel no mobil geral do processo administrativo
+		ExMobil mobGeral = doc.getMobilGeral();
+		for (ExMovimentacao mov : movsInteressado) {
+			vincularPapel(cadastrante, lotaCadastrante, mobGeral, dtMov, mov.getLotaResp(), mov.getResp(), 
+					mov.getSubscritor(), mov.getTitular(), mov.getDescrMov(), mov.getNmFuncaoSubscritor(), 
+					mov.getExPapel());
+		}
+		
+		// Remove o papel do mobil geral do documento autuado
+		for (ExMovimentacao mov : movsInteressado) {
+			final ExMovimentacao movCancelamento = criarNovaMovimentacao(
+					ExTipoDeMovimentacao.CANCELAMENTO_DE_MOVIMENTACAO, null, null,
+					mov.mob(), dtMov, null, null, null, null, null);
+			movCancelamento.setExMovimentacaoRef(mov);
+			gravarMovimentacaoCancelamento(movCancelamento, mov);
+			atualizarMarcas(mov.mob().doc());
+		}
+	}
 
 	private void juntarAoDocumentoAutuado(final DpPessoa cadastrante, final DpLotacao lotaCadastrante,
 			final ExDocumento doc, final Date dtMov, final DpPessoa titular) throws Exception, AplicacaoException {
@@ -6694,6 +6737,10 @@ public class ExBL extends CpBL {
 					& getComp().pode(ExPodeSerJuntado.class, titular, lotaCadastrante, doc.getExMobilAutuado().doc(), mob)) {
 				juntarDocumento(cadastrante, titular, lotaCadastrante, null,
 						doc.getExMobilAutuado(), mob, dtMov, null, titular, "1");
+				
+				// Após a juntada, vamos transferir perfis de interessado do documento autuado 
+				// para o processo administrativo
+				transferirInteressadosDoAutuadoParaOProcessoAdministrativo(doc, cadastrante, lotaCadastrante, dtMov);
 				break;
 			}
 		}

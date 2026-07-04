@@ -882,6 +882,18 @@ public class ExMovimentacaoController extends ExController {
 	
 	@Transacional
 	@UsuarioExterno
+	@Get("app/expediente/mov/preparar-para-assinar-principal-e-juntados")
+	public void aTratarDocumentosSubmetidosNaEntrevista(String sigla, Boolean autenticando) throws Exception {
+		BuscaDocumentoBuilder builder = BuscaDocumentoBuilder.novaInstancia()
+				.setSigla(sigla);
+		ExDocumento doc = buscarDocumento(builder);
+		Ex.getInstance().getBL().tratarDocumentosSubmetidosNaEntrevista(getCadastrante(), getLotaCadastrante(), getTitular(), getLotaTitular(), doc);
+		result.redirectTo("assinar-principal-e-juntados?sigla=" + sigla + (autenticando != null ? "&autenticando=" + autenticando : ""));
+	}
+
+	
+	@Transacional
+	@UsuarioExterno
 	@Get("app/expediente/mov/assinar-principal-e-juntados")
 	public void aAssinarPrincipalEJuntados(String sigla, Boolean autenticando) throws Exception {
 		aAssinar(sigla, autenticando);
@@ -889,16 +901,15 @@ public class ExMovimentacaoController extends ExController {
 		BuscaDocumentoBuilder builder = BuscaDocumentoBuilder.novaInstancia()
 				.setSigla(sigla);
 		ExDocumento doc = buscarDocumento(builder);
-		Ex.getInstance().getBL().tratarDocumentosSubmetidosNaEntrevista(getCadastrante(), getLotaCadastrante(), getTitular(), getLotaTitular(), doc);
 		List<ExDocumento> l = new ArrayList<>();
 		if (doc.isPendenteDeAssinatura())
 			l.add(doc);
 
 		ExMobil mob = doc.getPrimeiroMobil();
 		if (mob != null) {
-			List<ExMovimentacao> movimentacoesReferenciaPorTipo = mob.getMovimentacoesReferenciaPorTipo(ExTipoDeMovimentacao.JUNTADA, true);
-			if (movimentacoesReferenciaPorTipo != null) {
-				for (ExMovimentacao mov : movimentacoesReferenciaPorTipo) {
+			List<ExMovimentacao> juntadasAtivas = Ex.getInstance().getBL().juntadasAtivas(mob);
+			if (juntadasAtivas != null) {
+				for (ExMovimentacao mov : juntadasAtivas) {
 					ExDocumento juntado = (ExDocumento) Hibernate.unproxy(mov.getExMobil().doc());
 					if (juntado.isPendenteDeAssinatura())
 						l.add(juntado);

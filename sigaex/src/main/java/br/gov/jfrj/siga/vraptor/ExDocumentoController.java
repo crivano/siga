@@ -47,7 +47,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.SortedSet;
 import java.util.TreeSet;
 
 import javax.inject.Inject;
@@ -1986,7 +1985,7 @@ public class ExDocumentoController extends ExController {
 				ExDocumento doc = exDocumentoDTO.getDoc();
 				if (!doc.isFinalizado())
 					Ex.getInstance().getBL().finalizar(getCadastrante(), getLotaCadastrante(), getTitular(), getLotaTitular(), doc);
-				final String url = MessageFormat.format("/app/expediente/mov/assinar-principal-e-juntados?sigla={0}",
+				final String url = MessageFormat.format("/app/expediente/mov/preparar-para-assinar-principal-e-juntados?sigla={0}",
 					doc.getSigla());
 				result.redirectTo(url);
 			} else {

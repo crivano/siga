@@ -120,16 +120,19 @@
 
 							<input type="hidden" name="ad_url_base" value="" /> <input
 								type="hidden" name="ad_url_next"
-								value="/sigaex/app/expediente/doc/mesa-usuario-externo?sigla=${siglaDocumentoPrincipal}" /> 
-							<input type="hidden" name="ad_usuario_externo" value="${usuarioExterno}" />
+								value="/sigaex/app/expediente/doc/mesa-usuario-externo?sigla=${siglaDocumentoPrincipal}" />
+							<input type="hidden" name="ad_usuario_externo"
+								value="${usuarioExterno}" />
 
 							<c:forEach var="juntado" items="${juntados}">
-								<input type="hidden" name="ad_descr_${juntado.idDoc}" value="${juntado.sigla}" />
+								<input type="hidden" name="ad_descr_${juntado.idDoc}"
+									value="${juntado.sigla}" />
 								<input type="hidden" name="ad_url_pdf_${juntado.idDoc}"
 									value="/sigaex/app/arquivo/exibir?arquivo=${juntado.codigoCompacto}.pdf" />
 								<input type="hidden" name="ad_url_post_${juntado.idDoc}"
 									value="/sigaex/app/expediente/mov/assinar_gravar" />
-								<input type="hidden" name="ad_url_post_password_${juntado.idDoc}"
+								<input type="hidden"
+									name="ad_url_post_password_${juntado.idDoc}"
 									value="/sigaex/app/expediente/mov/assinar_senha_gravar" />
 								<input type="hidden" name="ad_id_${juntado.idDoc}"
 									value="${juntado.codigoCompacto}" />
@@ -137,7 +140,8 @@
 									value="${juntado.descrDocumento}" />
 								<input type="hidden" name="ad_kind_${juntado.idDoc}"
 									value="${juntado.descrFormaDoc}" />
-								<input type="hidden" name="ad_aut_${juntado.idDoc}" value="${empty juntado.subscritor}" />
+								<input type="hidden" name="ad_aut_${juntado.idDoc}"
+									value="${empty juntado.subscritor}" />
 							</c:forEach>
 						</div>
 
@@ -158,16 +162,15 @@
 							value="${f:deveUtilizarSegundoFatorPin(cadastrante,cadastrante.lotacao)}" />
 						<c:set var="defaultUtilizarSegundoFatorPin"
 							value="${f:defaultUtilizarSegundoFatorPin(cadastrante,cadastrante.lotacao) }" />
-							
+
 						<tags:assinatura_botoes assinar="${assinando}"
 							voltar="${voltarAtivo}"
 							linkVoltar="${pageContext.request.contextPath}/app/expediente/doc/editar?sigla=${sigla}"
 							assinarComSenhaPin="${podeAssinarComSenha and obrigatorioUtilizarSegundoFatorPin}"
 							assinarComSenhaPinChecado="${podeAssinarComSenha and defaultUtilizarSegundoFatorPin}"
 							assinarComSenha="${podeAssinarComSenha and not obrigatorioUtilizarSegundoFatorPin}"
-							assinarComSenhaChecado="${podeAssinarComSenha and defaultAssinarComSenha and not defaultUtilizarSegundoFatorPin}" 
-							linkPaginaAtual="${pageContext.request.contextPath}/app/expediente/mov/assinar-principal-e-juntados?sigla=${sigla}"
-						/>
+							assinarComSenhaChecado="${podeAssinarComSenha and defaultAssinarComSenha and not defaultUtilizarSegundoFatorPin}"
+							linkPaginaAtual="${pageContext.request.contextPath}/app/expediente/mov/assinar-principal-e-juntados?sigla=${sigla}" />
 
 					</div>
 				</div>

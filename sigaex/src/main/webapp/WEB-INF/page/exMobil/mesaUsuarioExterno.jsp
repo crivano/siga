@@ -18,8 +18,8 @@
 			test="${empty msgPesqErro and (not empty tamanho or tamanho > 0)}">
 			Consulte o andamento de seus documentos abaixo.
 		</c:if>
-		<c:if test="${not empty f:resource('/siga.usuario.externo.pagina.modelos.url') and empty f:resource('/siga.usuario.externo.pagina.modelos.botao')}">
-			Clique <a id="ver-modelos" href="${f:resource('/siga.usuario.externo.pagina.modelos.url')}">aqui</a> para ver a lista de modelos de documentos que o usuário externo pode criar.
+		<c:if test="${not empty paginaModelosUrl}">
+			Clique <a id="ver-modelos" href="${paginaModelosUrl}">aqui</a> para ver a lista de modelos de documentos que o usuário externo pode criar.
 		</c:if>
 		</p>
 
