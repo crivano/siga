@@ -3464,7 +3464,8 @@ public class ExBL extends CpBL {
 				criarVolume(cadastrante, lotaCadastrante, titular, lotaTitular, doc);
 			}
 
-			tratarDocumentosSubmetidosNaEntrevista(cadastrante, lotaCadastrante, titular, lotaTitular, doc);
+			if (!isUsuarioExterno(cadastrante, lotaCadastrante))
+				tratarDocumentosSubmetidosNaEntrevista(cadastrante, lotaCadastrante, titular, lotaTitular, doc);
 
 			processar(doc, false, false);
 			// doc.armazenar();

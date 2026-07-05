@@ -1285,6 +1285,7 @@ public class ExMobilController extends
         result.include("paginaModelosUrl", paginaModelosUrl);
         
 		if (Objects.nonNull(tamanho)) {
+			setItemPagina(MAX_ITENS_PAGINA_USUARIO_EXTERNO);
 			final List<Object[]> itens = dao().consultarPorFiltroOtimizado(flt, offset, getItemPagina(), getTitular(), getLotaTitular());
 			
 			for (Object[] item : itens) {
@@ -1300,7 +1301,6 @@ public class ExMobilController extends
 			}
 			
 			getP().setOffset(offset);
-			setItemPagina(MAX_ITENS_PAGINA_USUARIO_EXTERNO);
 			setItens(itens);
 			setTamanho(tamanho);
 
