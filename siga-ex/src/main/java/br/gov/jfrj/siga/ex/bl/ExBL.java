@@ -3684,41 +3684,60 @@ public class ExBL extends CpBL {
 		
 		// Localiza as movimentações de juntada já existentes
 		List<ExMovimentacao> juntadas = juntadasAtivas(primeiroMob);
-		
-		int i = 0;
+
+		// Regrava a descrição dos documentos que serão juntados
 		Set<ExDocumento> filhosJuntados = new TreeSet<>();
-		for (SubmittedDocumentInfo submitted : submittedSet) {
-			if (primeiroMob != null) {
+		if (primeiroMob != null) {
+			for (SubmittedDocumentInfo submitted : submittedSet) {
 				submitted.doc.setExMobilPai(primeiroMob);
 				gravaDescrDocumento(titular, lotaTitular, submitted.doc);
 			}
 			
-			if (primeiroMob == null)
-				continue;
-
-			filhosJuntados.add(submitted.doc);
-
-			// Verifica se já está juntado e na order correta
-			final ExMovimentacao juntada = juntadas.size() > i ? juntadas.get(i++) : null; 
-			if (juntada != null 
-					&& submitted.mob.isJuntado() 
-					&& submitted.mob.equals(juntada.getExMobil()) 
-					&& primeiroMob.equals(juntada.getExMobilRef())) {
-				continue;
+			// Verifica quantos documentos já estão juntados e na ordem correta
+			int i = 0;
+			if (juntadas.size() > 0) {
+				for (SubmittedDocumentInfo submitted : submittedSet) {
+					// Verifica se já está juntado e na order correta
+					final ExMovimentacao juntada = juntadas.size() > i ? juntadas.get(i) : null;
+					if (juntada != null 
+							&& submitted.mob.isJuntado() 
+							&& submitted.mob.equals(juntada.getExMobil()) 
+							&& primeiroMob.equals(juntada.getExMobilRef())) {
+						filhosJuntados.add(submitted.doc);
+						i++;
+						continue;
+					} else {
+						break;
+					}
+				}
+				
+				// Cancela juntadas antigas a partir do ponto em que houve divergência
+				if (juntadas.size() > i) {
+					// Se houve alteração nem alguma juntada, cancela todas as juntadas daqui para frente
+					for (int j = juntadas.size() - 1; j >= 0 && j >= i; j--) {
+						cancelarJuntada(cadastrante, lotaCadastrante, juntadas.get(j).mob(), null, 
+								cadastrante, titular, 
+								"Juntada automática de documento submetido na entrevista cancelada por alteração no documento antes da assinatura.");
+					}
+				}
 			}
 			
-			// Se houve alteração nem alguma juntada, cancela todas as juntadas daqui para frente
-			for (int j = juntadas.size() - 1; j >= 0 && j >= i - 1; j--) {
-				cancelarJuntada(cadastrante, lotaCadastrante, juntadas.get(j).mob(), null, 
-						cadastrante, titular, 
-						"Juntada automática de documento submetido na entrevista cancelada por alteração no documento antes da assinatura.");
-			}
-			juntadas.clear();
-			
-			// Juntar o mobil correto
-			if (!submitted.mob.isJuntado()) {
-				juntarDocumento(cadastrante, titular, lotaCadastrante, null, submitted.mob,
-						primeiroMob, null, null, titular, "1");
+			// Juntar os documentos que ainda não estavam juntados, desprezar os primeiros i documento
+			// pois esses já estava juntados anteriormente.
+			int k = 0;
+			for (SubmittedDocumentInfo submitted : submittedSet) {
+				if (k < i) {
+					k++;
+					continue;
+				}
+				
+				filhosJuntados.add(submitted.doc);
+
+				// Juntar o mobil correto
+				if (!submitted.mob.isJuntado()) {
+					juntarDocumento(cadastrante, titular, lotaCadastrante, null, submitted.mob,
+							primeiroMob, null, null, titular, "1");
+				}
 			}
 		}
 		
