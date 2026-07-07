@@ -64,6 +64,7 @@ import br.gov.jfrj.itextpdf.Documento;
 import br.gov.jfrj.itextpdf.Stamp;
 import br.gov.jfrj.siga.base.AcaoVO;
 import br.gov.jfrj.siga.base.AplicacaoException;
+import br.gov.jfrj.siga.base.Contexto;
 import br.gov.jfrj.siga.base.Correio;
 import br.gov.jfrj.siga.base.Data;
 import br.gov.jfrj.siga.base.DateUtils;
@@ -879,18 +880,6 @@ public class ExMovimentacaoController extends ExController {
 		result.include("tramitarFixo", afTramite.fixo);
 		result.include("tramitarExplicacao", afTramite.explicacao);
 	}
-	
-	@Transacional
-	@UsuarioExterno
-	@Get("app/expediente/mov/preparar-para-assinar-principal-e-juntados")
-	public void aTratarDocumentosSubmetidosNaEntrevista(String sigla, Boolean autenticando) throws Exception {
-		BuscaDocumentoBuilder builder = BuscaDocumentoBuilder.novaInstancia()
-				.setSigla(sigla);
-		ExDocumento doc = buscarDocumento(builder);
-		Ex.getInstance().getBL().tratarDocumentosSubmetidosNaEntrevista(getCadastrante(), getLotaCadastrante(), getTitular(), getLotaTitular(), doc);
-		result.redirectTo("assinar-principal-e-juntados?sigla=" + sigla + (autenticando != null ? "&autenticando=" + autenticando : ""));
-	}
-
 	
 	@Transacional
 	@UsuarioExterno

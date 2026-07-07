@@ -68,6 +68,7 @@ import br.com.caelum.vraptor.observer.download.InputStreamDownload;
 import br.com.caelum.vraptor.observer.upload.UploadedFile;
 import br.com.caelum.vraptor.view.Results;
 import br.gov.jfrj.siga.base.AplicacaoException;
+import br.gov.jfrj.siga.base.Contexto;
 import br.gov.jfrj.siga.base.Data;
 import br.gov.jfrj.siga.base.Prop;
 import br.gov.jfrj.siga.base.RegraNegocioException;
@@ -127,6 +128,7 @@ import br.gov.jfrj.siga.ex.model.enm.ExTipoDeMovimentacao;
 import br.gov.jfrj.siga.ex.util.FuncoesEL;
 import br.gov.jfrj.siga.ex.vo.ExDocumentoVO;
 import br.gov.jfrj.siga.hibernate.ExDao;
+import br.gov.jfrj.siga.model.ContextoPersistencia;
 import br.gov.jfrj.siga.model.Selecao;
 import br.gov.jfrj.siga.persistencia.ExMobilDaoFiltro;
 import br.gov.jfrj.siga.vraptor.builder.BuscaDocumentoBuilder;
@@ -1985,8 +1987,16 @@ public class ExDocumentoController extends ExController {
 				ExDocumento doc = exDocumentoDTO.getDoc();
 				if (!doc.isFinalizado())
 					Ex.getInstance().getBL().finalizar(getCadastrante(), getLotaCadastrante(), getTitular(), getLotaTitular(), doc);
-				final String url = MessageFormat.format("/app/expediente/mov/preparar-para-assinar-principal-e-juntados?sigla={0}",
-					doc.getSigla());
+				ContextoPersistencia.flushTransaction();
+				ContextoPersistencia.getEntityManager().clear();
+				doc = dao().carregar(doc);
+				try {
+					Ex.getInstance().getBL().tratarDocumentosSubmetidosNaEntrevista(getCadastrante(), getLotaCadastrante(), getTitular(), getLotaTitular(), doc);
+				} catch (Exception exc) {
+					throw new RuntimeException("Erro no tratamento dos documentos submetidos na entrevista", exc);
+				}
+				final String url = MessageFormat.format("{0}/sigaex/app/expediente/mov/assinar-principal-e-juntados?sigla={1}",
+					Contexto.urlBase(request), doc.getSigla());
 				result.redirectTo(url);
 			} else {
 				final String url = MessageFormat.format(
