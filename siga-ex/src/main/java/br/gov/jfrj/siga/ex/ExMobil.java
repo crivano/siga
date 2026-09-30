@@ -1408,7 +1408,7 @@ public class ExMobil extends AbstractExMobil implements Serializable, Selecionav
 		
 		while (true) {
 			ExMovimentacao m = getUltimaMovimentacaoNaoCancelada(ExTipoDeMovimentacao.JUNTADA, ExTipoDeMovimentacao.CANCELAMENTO_JUNTADA);
-			if (m == null)
+			if (m == null || mb == m.getExMobilRef())
 				return mb;
 			mb = m.getExMobilRef();
 			if (mb == null)
