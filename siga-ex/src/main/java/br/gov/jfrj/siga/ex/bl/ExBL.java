@@ -2053,7 +2053,6 @@ public class ExBL extends CpBL {
 		
 		if (isUsuarioExterno(cadastrante, lotaCadastrante)) {
 			matriculaSubscritor = cadastrante.getSigla();
-			validarSenha = false;
 		}
 
 		final CpIdentidade id = dao().consultaIdentidadeCadastrante(matriculaSubscritor, true);
